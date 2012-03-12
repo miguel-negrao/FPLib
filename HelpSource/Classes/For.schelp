@@ -2,6 +2,10 @@ class::For
 summary::scala style For comprehensions
 categories::FP
 
+DESCRIPTION::
+
+Implements the equivalent to scala's for comprehensions or Haskell's do notation. Unfortunatelly the proper syntax for this is not implemented, so one has to use functions instead.
+
 Examples::
 
 code::

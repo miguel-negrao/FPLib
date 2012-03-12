@@ -14,6 +14,8 @@ For more information see http://en.wikipedia.org/wiki/Option_type.
 
 Is a type instance of Functor, Applicative Functor, Monad
 
+nil checks can be converted to Option checks by doing code:: myObject.asOption ::. This will convert nil values to None and all other values to Some. This is different from using pure, because code::nil.pure(Option):: will output a code::Some(nil):: not a code::None::.
+
 CLASSMETHODS::
 
 METHOD:: new
@@ -63,13 +65,46 @@ code::
 
 Access a 3 level dictionary hierarchy without ever using any if statement:
 code::
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).getOrElse(500)  // -> return 3
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\bogus).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).getOrElse(500) // -> return 500
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\dic1).flatCollect(_.get(\bogus)).flatCollect(_.get(\thing)).getOrElse(500) // -> return 500
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\bogus)).getOrElse(500)  // -> return 500
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).getOrElse(500)  // -> return 3
+)
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\bogus).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).getOrElse(500) // -> return 500
+)
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\dic1).flatCollect(_.get(\bogus)).flatCollect(_.get(\thing)).getOrElse(500) // -> return 500
+)
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\bogus)).getOrElse(500)  // -> return 500
+)
 
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).do(postln(_))  // -> print 3
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\bogus).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).do(postln(_)) // -> do nothing
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\dic1).flatCollect(_.get(\bogus)).flatCollect(_.get(\thing)).do(postln(_)) // -> do nothing
-(\dic1:(\dic2:(\thing: 3)), \amp: 1).get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\bogus)).do(postln(_))  // -> do nothing
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).do(postln(_))  // -> print 3
+)
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\bogus).flatCollect(_.get(\dic2)).flatCollect(_.get(\thing)).do(postln(_)) // -> do nothing
+)
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\dic1).flatCollect(_.get(\bogus)).flatCollect(_.get(\thing)).do(postln(_)) // -> do nothing
+)
+(
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+x.get(\dic1).flatCollect(_.get(\dic2)).flatCollect(_.get(\bogus)).do(postln(_))  // -> do nothing
+)
+
+//For notation:
+x = (\dic1:(\dic2:(\thing: 3)), \amp: 1);
+z = For(
+	x.get(\dic1),
+	_.get(\dic2),
+	_.get(\thing),
+	I.d
+).getOrElse(500)
 ::

@@ -56,3 +56,33 @@ z.do(_.postln);
 x.value_(5);
 y.value_(6);
 ::
+
+method::flatCollectR
+argument::f
+f: A => FPSignal[B]
+discussion::
+code::
+//this is the correct syntax but will cause a build up of EventSources
+(
+x = Var(1);
+y = Var(2);
+z = x.flatCollect{ |x| y.collect{ |y| "Ping".postln; [x,y] } };
+z.do(_.postln);
+)
+//run this multiple times
+x.value_(3);
+//you will get multiple pings, when you should have only one.
+y.value_(4);
+
+//Now with an flatCollectR
+(
+x = Var(1);
+y = Var(2);
+z = x.flatCollectR{ |x| y.collect{ |y| "Ping".postln; [x,y] } };
+z.do(_.postln);
+)
+//run this multiple times
+x.value_(3);
+//only one ping.
+y.value_(4);
+::

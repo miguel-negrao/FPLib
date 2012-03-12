@@ -22,7 +22,7 @@
    B. You must not use it in any way that transgresses the Apache Software License.
    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-   translated to SuperCollider by Miguel Negr‹o.
+   translated to SuperCollider by Miguel Negrao.
 */
 
 EventStream{ }
@@ -42,7 +42,7 @@ EventSource : EventStream {
 
     removeListener { |f| listeners.remove(f) }
     
-    removeAllListeners { listeners = [] }
+    reset { listeners = [] }
 
 	proc { |initialState, f|
 		^ChildEventSource( initialState ).initChildEventSource(this,f)
@@ -64,6 +64,10 @@ EventSource : EventStream {
         ^FlatCollectedES( this, f, initialState)
     }
 
+    flatCollectR { |f, initialState|
+		^FlatCollectedESR( this, f, initialState)
+	}
+
     | { |otherES|
         ^MergedES( this, otherES )
     }
@@ -83,6 +87,7 @@ EventSource : EventStream {
 
     fire { |event|
 	    //("running fire "++event++" "++this.hash).postln;
+	    //copy is used here because listerFuncs might mutate the listeners variable
         listeners.copy.do( _.value(event) )
     }
 
@@ -129,12 +134,15 @@ ChildEventSource : EventSource {
     initChildEventSource { |p,h, initialFunc|
         parent = p;
         handler = h;
-        listenerFunc = { |value| state = handler.value(value, state) };
+        listenerFunc = { |value|
+        	//("doing listener func of "++this.hash).postln;
+        	state = handler.value(value, state)
+        };
         parent.addListener(listenerFunc)
     }
 
     remove {
-        listeners.do( _.removeListener( listenerFunc ) )
+        parent.removeListener( listenerFunc )
     }
 }
 
@@ -203,6 +211,29 @@ FlatCollectedES : ChildEventSource {
     }
 }
 
+FlatCollectedESR : ChildEventSource {
+
+    *new { |parent, f, initial|
+        ^super.new(initial).init(parent, f)
+    }
+
+    init { |parent, f|
+        var thunk = { |x|
+         	//"firing the FlatCollectedES".postln;
+         	this.fire(x)
+        };
+        state !? _.addListener(thunk);
+        this.initChildEventSource(parent, { |event, lastES|
+             var nextES;
+             lastES !? _.removeListener( thunk );
+             lastES !? { |x| x.tryPerform(\remove) };
+             nextES = f.(event);
+             nextES !? _.addListener( thunk );
+             nextES
+        })
+    }
+}
+
 TakeWhileES : ChildEventSource {
 
     *new { |parent, f|
@@ -230,49 +261,5 @@ MergedES : EventSource {
         var thunk = this.fire(_);
         parent1.addListener( thunk );
         parent2.addListener( thunk );
-    }
-}
-
-TimerES : EventSource {
-    var <routine;
-
-    *new{ |delta, maxTime|
-        ^super.new.init(delta, maxTime)
-    }
-
-    init { |delta, maxTime|
-
-        var t = 0;
-        routine = fork{
-            100.do{
-                delta.wait;
-                if( t > maxTime) {
-                    routine.stop;
-                };
-                t = t + delta;
-                this.fire(t);
-            }
-        }
-
-    }
-}
-
-EventPlayerES : EventSource {
-    var <routine;
-
-    *new{ |array|
-        ^super.new.init(array)
-    }
-
-    init { |array|
-
-        var t = 0;
-        routine = fork{
-        	array.do{ |tx|
-	        	( tx[0] -t ).wait;
-	        	this.fire( tx[1] );
-	        	t = tx[0];
-        	}
-        }
     }
 }

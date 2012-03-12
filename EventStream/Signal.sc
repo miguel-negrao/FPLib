@@ -45,6 +45,10 @@ FPSignal {
         ^FlatCollectedFPSignal( this, f, initialState)
     }
 
+    flatCollectR { |f, initialState|
+        ^FlatCollectedFPSignalR( this, f, initialState)
+    }
+
 }
 
 SignalChangeES : EventSource {
@@ -80,6 +84,10 @@ ChildFPSignal : FPSignal {
         	state = handler.value(value, state)
         };
         parent.change.addListener( listenerFunc )
+    }
+    
+    remove {
+		parent.change.removeListener( listenerFunc )
     }
 
 }
@@ -118,6 +126,33 @@ FlatCollectedFPSignal : ChildFPSignal {
              var nextFPSignal;
              //("handler called with event "++event++" and state "++state).postln;
              lastFPSignal.change !? _.removeListener( thunk );
+             nextFPSignal = f.(event);
+             thunk.( nextFPSignal.now );
+             nextFPSignal.change !? _.addListener( thunk );
+             nextFPSignal
+        }, initialState, _.now)
+    }
+}
+
+FlatCollectedFPSignalR : ChildFPSignal {
+
+    *new { |parent, f|
+        ^super.new.init(parent, f)
+    }
+
+    init { |parent, f|
+        var thunk = { |x|
+        	//("thunk was called with event "++x).postln;
+            now = x;
+            change.fire( x );
+        };
+        var initialState = f.(parent.now);
+        initialState.change !? _.addListener(thunk);
+        this.initChildFPSignal(parent, { |event, lastFPSignal|
+             var nextFPSignal;
+             //("handler called with event "++event++" and state "++state).postln;
+             lastFPSignal.change !? _.removeListener( thunk );
+             lastFPSignal.tryPerform(\remove);
              nextFPSignal = f.(event);
              thunk.( nextFPSignal.now );
              nextFPSignal.change !? _.addListener( thunk );

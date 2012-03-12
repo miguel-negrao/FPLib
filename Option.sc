@@ -82,3 +82,17 @@ None : Option {
     
 }
 
++ Object {
+
+	asOption {
+		^Some(this)
+	}
+
+}
+
++ Nil {
+
+	asOption {
+		^None
+	}
+}
