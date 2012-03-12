@@ -1,0 +1,7 @@
++ Function {
+
+	<|? { |func|
+		^[this,func]
+	}
+
+}

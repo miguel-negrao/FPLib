@@ -1,0 +1,170 @@
+CLASS:: EventSource
+summary:: Implementation of Functional Reactive Programming.
+categories:: FP
+related:: Classes/FPSignal
+
+description::
+
+This is a port of the reactive-core library for Scala into SuperCollider.
+
+For more info see:
+
+http://www.reactive-web.co.cc/core/EventStream
+
+note::
+Right now because sc does not have weak references, this can cause a build up of EventStreams when using flatCollect.
+::
+
+
+An EventStream is a source of events (arbitrary values sent to listener functions). You can fire events from it, you can react to events with any behavior, and you can create derived EventStreams, whose events are based on the original EventStream.
+
+An EventStream is like a collection in the sense that it consists of multiple values. However, unlike actual collections, the values are not available upon request; they occur whenever they occur. Nevertheless, many operations that apply to collections apply to event streams. To react to events, use foreach or foldLeft. To create derived, transformed EventStreams, use map, flatMap, filter, foldLeft, and the | (union) operator. Note that you can of course use for comprehensions as syntactic sugar for many of the above.
+
+There are only two ways to stop an EventSource from continuing to process events:
+list::
+## the functional way is to use takeWhile
+## the imperative way is to call .remove on the event stream.
+::
+
+subsection::Type Classes
+EventSource is an instance of the Functor Type Class. It does not implement the 'pure' function therefore it is not a Monad or an Applicative Functor. It does implement the 'bind' or '>>=' function.
+
+instancemethods::
+
+method::do
+Run f every time a new event arrives.
+
+method::hold
+argument::initialValue
+The current ('now') value for the returned FPSignal.
+returns:: An FPSignal that holds the last value of the EventSource
+
+method::collect
+returns::A new EventStream, that for every event that this EventStream fires, that one will fire an event that is the result of applying 'f' to this EventStream's event.
+discussion::
+code::
+(
+x = EventSource();
+y = x.collect( _*100 );
+y.do(_.postln);
+x.fire(2)
+)
+::
+
+method::select
+returns::A new EventStream that propagates a subset of the events that this EventStream fires.
+discussion::
+code::
+(
+x = EventSource();
+y = x.select( _ < 2 );
+y.do(_.postln);
+x.fire(1);
+x.fire(4);
+)
+::
+
+method::fold
+Allows one, in a functional manner, to respond to an event while taking into account past events. For every event t, f is called with arguments (u, t), where u is initially the value of the 'initial' parameter, and subsequently the result of the previous application of f.
+returns:: A new EventStream that, for every event t fired by the original EventStream, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
+discussion::
+An EventStream that sums all the integer values fired by the parent EventStream.
+code::
+(
+x = EventSource();
+y = x.fold( 0, {|state,b| state + b });
+y.do(_.postln);
+x.fire(1);
+x.fire(4);
+x.fire(7)
+)
+::
+
+method::flatCollect
+Create a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
+argument::f
+f the function that is applied for every event to produce the next segment of the resulting EventStream.
+discussion::
+code::
+(
+x = EventSource();
+y = EventSource();
+z = EventSource();
+w = x.flatCollect{ |v|
+ if(v==0){y}{z}
+};
+w.do(_.postln);
+)
+(
+//will get value from y
+x.fire(0);
+y.fire(1);
+z.fire(4);
+)
+(
+//will get value from z
+x.fire(1);
+y.fire(1);
+z.fire(4);
+)
+
+(
+x = EventSource();
+y = EventSource();
+z = x.flatCollect{ |x| y.collect{ |y| [x,y] } };
+z.do(_.postln);
+x.fire(1);
+y.fire(4);
+)
+
+::
+
+method::|
+Merges the output of the two EventSources.
+discussion::
+code::
+(
+x = EventSource();
+y = EventSource();
+z = x | y;
+z.do({ |x| ("received: "++x).postln});
+x.fire(1);
+y.fire(4);
+)
+::
+
+method::merge
+the same as code::|::
+
+method::takeWhile
+returns::An EventSource that will fire the events coming from the parent until f evaluates to false, at which point it will not fire anything else.
+discussion::
+code::
+(
+x = EventSource();
+z = x.takeWhile( _ < 10);
+z.do({ |x| ("received: "++x).postln});
+x.fire(1);
+x.fire(4);
+x.fire(7);
+x.fire(13);
+x.fire(4);
+)
+::
+
+method::remove
+
+Disconnects the EventStream from the parent EventStream. If the EventStream is then not assigned to any variable anymore it will be gc'ed.
+
+Examples::
+
+code::
+//Using a timer
+(
+// args delta (s), maxTime(s)
+// will output every delta seconds until maxTime is reached.
+x = TimerES(1,10);
+x.do({ |x| ("received: "++x).postln});
+)
+
+::

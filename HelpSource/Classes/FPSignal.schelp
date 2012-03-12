@@ -1,0 +1,58 @@
+CLASS:: FPSignal
+summary:: Implementation of Functional Reactive Programming.
+categories:: FP, TimerES
+related:: Classes/EventSource
+
+description::
+
+This is port of the reactive-core library for Scala into SuperCollider.
+
+For more info see:
+
+http://www.reactive-web.co.cc/core/Signal
+
+note::
+Right now because sc does not have weak references, this can cause a build up of EventStreams when using flatCollect.
+::
+
+
+instancemethods::
+method::now
+the current value of the Signal
+
+method::change
+An EventSource which fires events every time the signal changes.
+
+method::do
+When the Signal changes, runs f with new value of Var.
+
+method::collect
+argument::f
+f: A => B
+discussion::
+code::
+(
+x = Var(2);
+y = x.collect( _*100 );
+y.now.postln;
+y.change.do(_.postln);
+)
+
+x.value_(100)
+::
+method::flatCollect
+argument::f
+f: A => FPSignal[B]
+discussion::
+code::
+(
+x = Var(1);
+y = Var(2);
+z = x.flatCollect{ |x| y.collect{ |y| [x,y] } };
+z.now.postln;
+z.do(_.postln);
+)
+
+x.value_(5);
+y.value_(6);
+::
