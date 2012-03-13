@@ -9,5 +9,4 @@ description::
      with a unit type can be any singleton set."
     http://en.wikipedia.org/wiki/Unit_type
 
-It can be used as a return value for functions that only perform side-effects and don't return anything, although off course, the FP quark would be happier if you didn't use such (non-functional) functions...
-
+By returning Unit we are signaling that the function only performs side-effects and does not return anything.

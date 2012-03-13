@@ -12,7 +12,7 @@ For more info see:
 http://www.reactive-web.co.cc/core/EventStream
 
 note::
-Right now because sc does not have weak references, this can cause a build up of EventStreams when using flatCollect.
+Right now because sc does not have weak references, this can cause a build up of EventStreams when using flatCollect. When creating new EventSources inside the flatCollect function, use instead flatCollectR.
 ::
 
 
@@ -28,6 +28,237 @@ list::
 
 subsection::Type Classes
 EventSource is an instance of the Functor Type Class. It does not implement the 'pure' function therefore it is not a Monad or an Applicative Functor. It does implement the 'bind' or '>>=' function.
+
+subsection::Templates
+
+Templates can be defined by placing a file in a EventStreamTemplates folder in the Extensions folder. The library comes already with some templates.
+
+note:: The names of the templates cannot be identical to method names of Object (including in additions from quarks, etc).::
+
+Example of a template:
+
+code::
+(
+func:{ |eventSource|
+	eventSource.collect([Process.elapsedTime,_])
+},
+desc: "store time when event occured",
+name: "storeWithT"
+)
+::
+
+Temapletes bundled with the library:
+
+list::
+
+## storeWithT: store time when event occured.
+code::
+(
+x = EventSource();
+x.storeWithT.dopost;
+x.fire(2)
+)
+::
+
+## storePrevious: store current and previous event in an array. The initial values are assumed to be 0.0.
+code::
+(
+x = EventSource();
+x.storePrevious.dopost;
+x.fire(2);
+x.fire(3);
+)
+::
+
+## storePreviousWithT: store current and previous event in an array with the event time stamp. The initial valuea are assumed to be [0.0,0.0].
+code::
+(
+x = EventSource();
+x.storePreviousWithT.dopost;
+x.fire(2);
+x.fire(3);
+)
+::
+
+## changes: Output only if new value different from last value.
+code::
+(
+x = EventSource();
+x.changes.dopost;
+x.fire(2);
+x.fire(2);
+x.fire(2);
+x.fire(2);
+x.fire(2);
+x.fire(2);
+x.fire(3);
+)
+::
+
+## changedDirection: Output only when going from increasing to decreasing or descreasing to increasing.
+code::
+(
+x = EventSource();
+x.changedDirection.dopost;
+x.fire(2);
+x.fire(3);
+x.fire(4);
+x.fire(2);
+)
+::
+
+## decreasing: Output only when values are decreasing.
+
+code::
+(
+x = EventSource();
+x.decreasing.dopost;
+x.fire(2);
+x.fire(3);
+x.fire(4);
+x.fire(2);
+)
+::
+
+## increasing: Output only when values are increasing.
+
+code::
+(
+x = EventSource();
+x.decreasing.dopost;
+x.fire(2);
+x.fire(3);
+x.fire(4);
+x.fire(2);
+)
+::
+
+## withinRange: Output only values between a and b.
+
+code::
+(
+x = EventSource();
+x.withinRange(2,3).dopost;
+x.fire(1);
+x.fire(2.5);
+)
+::
+
+## matchVal: Output only if event matches one of the values in the array, in which case the index of the value is returned.
+
+code::
+(
+x = EventSource();
+x.matchVal([1,2,3,4]).dopost;
+x.fire(1);
+x.fire(2.5);
+)
+::
+
+## threshold: Output when value crosses threshold.
+code::
+(
+x = EventSource();
+x.threshold(0.5).dopost;
+x.fire(0);
+x.fire(1);
+x.fire(0);
+)
+::
+
+## thresholdUp: Output when value crosses threshold while increasing.
+code::
+(
+x = EventSource();
+x.thresholdUp(0.5).dopost;
+x.fire(0);
+x.fire(1);
+x.fire(0);
+)
+::
+
+## thresholdDown: Output when value crosses threshold while decreasing.
+code::
+(
+x = EventSource();
+x.thresholdDown(0.5).dopost;
+x.fire(0);
+x.fire(1);
+x.fire(0);
+)
+::
+
+
+## neventsWithinT: Output a Unit if n consecutive events arrive within a period of waitTime seconds. Can be used for instance to detect double-clicks.
+code::
+(
+x = EventSource();
+x.neventsWithinT(1.0,3).dopost;
+fork{
+	x.fire(1);
+	x.fire(1);
+	//nothing goes through
+	1.1.wait;
+	x.fire(1);
+	x.fire(1);
+	x.fire(1);
+	//now you get a Unit
+}
+)
+::
+
+## speed: Output speed at which values are arriving.
+code::
+(
+x = EventSource();
+x.speed.dopost;
+x.fire(1);
+x.fire(2.5);
+)
+::
+
+## route: Returns an array of n event stream where events will be sent according to the values of select.
+
+n: number of event streams to route to
+select: event stream selects to which of the output event streams to send events
+
+This is similar has having a code::Out.ar(\bus.kr(0), ugen)::, it allows to choose where you are routing the input.
+
+code::
+
+(
+var select;
+//original source
+x = EventSource();
+//the event source that selects where the orignal source goes
+select = EventSource();
+x.route(4,select).do{ |es, i|
+	es.do{ |v| postln("outputting to selection "++i++": "++v) }
+};
+select.fire(0);
+x.fire(1);
+select.fire(2);
+x.fire(33);
+)
+::
+
+slowdown: Only fire if new value arrived at least t seconds after last value. Does not remember values in between.
+
+code::
+(
+x = EventSource();
+x.slowdown(0.1).dopost;
+fork{
+x.fire(1);
+x.fire(2.5);
+x.fire(3);
+0.2.wait;
+x.fire(22)
+}
+)
+::
+
+::
 
 instancemethods::
 

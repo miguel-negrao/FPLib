@@ -51,9 +51,9 @@ TimerES : EventSource {
 
         var t = 0;
         routine = fork{
-            100.do{
+            inf.do{
                 delta.wait;
-                if( t > maxTime) {
+                if( t >= maxTime) {
                     routine.stop;
                 };
                 t = t + delta;
@@ -61,5 +61,22 @@ TimerES : EventSource {
             }
         }
 
+    }
+}
+
+
+WaitES : EventSource {
+    var <routine;
+
+    *new{ |waitTime, value|
+        ^super.new.init(waitTime, value)
+    }
+
+    init { |waitTime, value|
+
+        routine = fork{
+	        waitTime.wait;
+            this.fire(value);
+        }
     }
 }

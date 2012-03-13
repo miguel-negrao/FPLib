@@ -28,7 +28,57 @@
 EventStream{ }
 
 EventSource : EventStream {
+	classvar <eventStreamTemplateFolders;
     var <listeners;
+
+    *initClass{
+		eventStreamTemplateFolders =
+			[this.filenameSymbol.asString.dirname.dirname +/+ "EventStreamTemplates",
+			Platform.userAppSupportDir++"/Extensions/EventStreamTemplates/"];
+	}
+
+	doesNotUnderstand{ |selector ...args|
+		var template = EventSource.getEventSourceTemplate(selector);
+		^if( template.notNil ) {
+			template[\func].value(this, *args)
+		} {
+			super.doesNotUnderstand(selector,*args)
+		}
+	}
+
+	*cleanTemplateName{ |name|
+		^name.asString.collect { |char| if (char.isAlphaNum, char, $_) };
+	}
+
+	*getTemplateFilePaths{ |templateName|
+		var cleanTemplateName = this.cleanTemplateName(templateName);
+		^eventStreamTemplateFolders.collect({|x| x +/+ cleanTemplateName ++ ".scd"});
+	}
+
+	*getEventSourceTemplate{ arg name;
+		var path;
+		this.getTemplateFilePaths(name).do{ |testpath|
+			if( File.exists(testpath) ) {
+				path = testpath;
+			}
+		};
+		^if( name.notNil and: path.notNil ) {
+			path.load
+		} {
+			"//" + this.class ++ ": - no EventSource template found for %: please make them!\n"
+			.postf( this.cleanTemplateName(name) );
+			("Templates should be placed at "++Platform.userAppSupportDir++"/Extensions/EventSourceTemplates/").postln;
+			nil
+		}
+	}
+
+	*availableTemplates{
+		^EventSource.eventStreamTemplateFolders.collect{ |x|
+			x.getPathsInDirectory.collect{ |y|
+				y.removeExtension
+			}
+		}.flatten
+	}
 
     new{
         ^super.new.initEventSource
@@ -85,10 +135,15 @@ EventSource : EventStream {
         ^Unit
     }
 
+    dopost {
+    	this.do(postln(_))
+    }
+
     fire { |event|
 	    //("running fire "++event++" "++this.hash).postln;
 	    //copy is used here because listerFuncs might mutate the listeners variable
-        listeners.copy.do( _.value(event) )
+        listeners.copy.do( _.value(event) );
+        ^Unit
     }
 
 	//returns the corresponding signal
