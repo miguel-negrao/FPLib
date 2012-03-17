@@ -156,7 +156,7 @@ EventSource : EventStream {
 
 HoldFPSignal : FPSignal {
 	var <now;
-	var <change;
+	var <changes;
 	var <listener;
 
 	*new { |eventStream, initialValue|
@@ -164,7 +164,7 @@ HoldFPSignal : FPSignal {
 	}
 
 	init { |eventStream, initialValue|
-		change = eventStream;
+		changes = eventStream;
 		now = initialValue;
 		listener = { |v| now = v};
 		eventStream.addListener( listener )

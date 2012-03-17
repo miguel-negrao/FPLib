@@ -20,12 +20,26 @@ instancemethods::
 method::now
 the current value of the Signal
 
-method::change
+method::changes
 An EventSource which fires events every time the signal changes.
 
-method::do
-When the Signal changes, runs f with new value of Var.
+code::
+(
+x = Var(2);
+x.changes;
+)
+::
 
+method::do
+When the Signal changes, runs f with new value.
+
+code::
+(
+x = Var(2);
+x.do{ |x| postln("look what I got:"++x) };
+x.value_(3);
+)
+::
 method::collect
 argument::f
 f: A => B
@@ -34,8 +48,7 @@ code::
 (
 x = Var(2);
 y = x.collect( _*100 );
-y.now.postln;
-y.change.do(_.postln);
+y.do(_.postln);
 )
 
 x.value_(100)
@@ -49,7 +62,6 @@ code::
 x = Var(1);
 y = Var(2);
 z = x.flatCollect{ |x| y.collect{ |y| [x,y] } };
-z.now.postln;
 z.do(_.postln);
 )
 
