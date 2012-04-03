@@ -1,7 +1,7 @@
 (
 func:{ |eventSource, n, select|
 	var nothing = EventSource();
-    (0..n).collect{ |i|
+    ( (1..n) - 1 ).collect{ |i|
     	select.flatCollect{ |v|
     		if( v == i ) {
     			eventSource
