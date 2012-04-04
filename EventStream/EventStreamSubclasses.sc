@@ -23,20 +23,28 @@
 EventPlayerES : EventSource {
     var <routine;
 
-    *new{ |array|
-        ^super.new.init(array)
+    *new{ |array, loop = true|
+        ^super.new.init(array, loop)
     }
 
-    init { |array|
+    init { |array, loop|
 
-        var t = 0;
-        routine = fork{
-        	array.do{ |tx|
+        var t;
+        var f = {
+	        t = 0;
+	        array.do{ |tx|
 	        	( tx[0] -t ).wait;
 	        	this.fire( tx[1] );
 	        	t = tx[0];
         	}
-        }
+        };
+        routine = fork{
+	     if(loop) {
+		     inf.do{ f.value };
+	     } {
+		     f.value
+	     }        	
+       }
     }
 }
 

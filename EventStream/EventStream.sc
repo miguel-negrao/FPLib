@@ -135,13 +135,15 @@ EventSource : EventStream {
         ^Unit
     }
 
-    dopost {
-    	this.do(postln(_))
-    }
+	stopDoing { |f|
+		this.removeListener(f);
+		^Unit
+	}
 
     fire { |event|
 	    //("running fire "++event++" "++this.hash).postln;
 	    //copy is used here because listerFuncs might mutate the listeners variable
+	    //change this to a FingerTree in the future.
         listeners.copy.do( _.value(event) );
         ^Unit
     }
