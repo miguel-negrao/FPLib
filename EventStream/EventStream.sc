@@ -27,6 +27,8 @@
 
 EventStream{
 
+	classvar <doFuncs;
+
 	*initClass {
 		Class.initClassTree(TypeClasses);
 		//type instances declarations:
@@ -37,6 +39,8 @@ EventStream{
 				'bind' : { |fa,f| fa.flatCollect(f) }
 			);
 		);
+
+		doFuncs = ();
 	}
 
 }
@@ -147,6 +151,19 @@ EventSource : EventStream {
     do { |f|
         this.addListener(f);
         ^Unit
+    }
+
+    doDef { |name, f|
+		var dict = EventStream.doFuncs;
+		f !? {
+			this.do(f);
+			dict.at(name) !? { |oldf| this.stopDoing( oldf ) };
+			dict.put(name,f)
+		} ?? {
+			dict.at(name) !? { |oldf| this.stopDoing( oldf ) };
+			dict.put(name, nil)
+		};
+		^Unit
     }
 
 	stopDoing { |f|

@@ -35,11 +35,46 @@ When the Signal changes, runs f with new value.
 
 code::
 (
-x = Var(2);
-x.do{ |x| postln("look what I got:"++x) };
-x.value_(3);
+x = Var(0);
+f = { |x| postln("look what I got:"++x) };
+x.do(f);
+x.value_(3)
+)
+
+//stop the action
+(
+x.stopDoing(f);
+x.value_(4)
 )
 ::
+
+method::doDef
+
+Run f every time a new event arrives and save the function using the name given
+
+argument::name 
+A key
+argument::f
+The function to call
+returns:: Unit
+
+code::
+(
+x = Var(0);
+x.doDef(\hello,{ |x| postln("look what I got:"++x) });
+x.value_(3)
+)
+(
+x.doDef(\hello,{ |x| postln("And now I print it like this:"++x) });
+x.value_(3)
+)
+(
+//remove the action
+x.doDef(\hello);
+x.value_(3)
+)
+::
+
 method::collect
 argument::f
 f: A => B
