@@ -258,12 +258,77 @@ x.fire(22)
 )
 ::
 
+toggle: Iterate amongs n states, i.e. with 4 states goes 0, 1, 2, 3, 0, 1, 2, etc...
+
+code::
+(
+x = EventSource();
+p = postln(_);
+x.toggle(4).do(p);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+)
+::
+
 ::
 
 instancemethods::
 
 method::do
 Run f every time a new event arrives.
+
+returns:: Unit
+
+code::
+(
+x = EventSource();
+f = { |x| postln("look what I got:"++x) };
+x.do(f);
+x.fire(3)
+)
+
+
+//stop the action
+(
+x.stopDoing(f);
+x.fire(4)
+)
+
+::
+
+
+
+method::doDef
+
+Run f every time a new event arrives and save the function using the name given
+
+argument::name 
+A key
+argument::f
+The function to call
+returns:: Unit
+
+code::
+(
+x = EventSource();
+x.doDef(\hello,{ |x| postln("look what I got:"++x) });
+x.fire(3)
+)
+(
+x.doDef(\hello,{ |x| postln("And now I print it like this:"++x) });
+x.fire(3)
+)
+(
+//remove the action
+x.doDef(\hello);
+x.fire(3)
+)
+::
 
 method::hold
 argument::initialValue
