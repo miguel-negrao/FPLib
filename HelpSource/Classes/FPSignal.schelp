@@ -98,3 +98,23 @@ x.value_(3);
 //only one ping.
 y.value_(4);
 ::
+
+method::bus
+
+create a bus and add a function to the event stream that updates the bus.
+
+returns:: Some( Tuple2( Bus, Function ) ). The function is returned to be able to stop updating the Bus in the future. If the server is not running returns None.
+
+code::
+x = { SinOsc.ar( \freq.kr(400) )*0.1 }.play
+
+(
+y = Var(900);
+b = y.bus(s);
+//b might be None if the server is not running.
+b.do{ |z| x.map(\freq, z.at1) }
+)
+
+//change freq to 200
+y.value_( 200 );
+::

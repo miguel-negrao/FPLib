@@ -50,6 +50,10 @@ FPSignal {
 		this.changes.do(f)
 	}
 
+	stopDoing { |f|
+		^this.changes.stopDoing(f)
+	}
+
 	collect { |f|
         ^CollectedFPSignal(this,f)
     }
@@ -60,6 +64,10 @@ FPSignal {
 
     flatCollectR { |f, initialState|
         ^FlatCollectedFPSignalR( this, f, initialState)
+    }
+
+    bus { |server|
+    	^this.changes.bus( server, this.now )
     }
 
 }

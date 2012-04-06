@@ -168,6 +168,20 @@ EventSource : EventStream {
     }
 
     remove { }
+
+    bus { |server, initVal = 0.0|
+		server = server ?? {Server.default};
+		if( server.serverRunning ) {
+			var bus = Bus.control(server, initVal.asArray.size);
+			var f = { |x| bus.setn( x.asArray ) };
+			this.do(f);
+			bus.setn( initVal.asArray );
+			^Some( Tuple2( bus, f) )
+		} {
+			^None
+		}
+	}
+
 }
 
 HoldFPSignal : FPSignal {
