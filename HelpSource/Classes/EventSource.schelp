@@ -258,6 +258,23 @@ x.fire(22)
 )
 ::
 
+toggle: Iterate amongs n states, i.e. with 4 states goes 0, 1, 2, 3, 0, 1, 2, etc...
+
+code::
+(
+x = EventSource();
+p = postln(_);
+x.toggle(4).do(p);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+x.fire(0);
+)
+::
+
 ::
 
 instancemethods::
