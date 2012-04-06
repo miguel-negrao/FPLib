@@ -55,7 +55,7 @@ list::
 code::
 (
 x = EventSource();
-x.storeWithT.dopost;
+x.storeWithT.do( postln(_) );
 x.fire(2)
 )
 ::
@@ -64,7 +64,7 @@ x.fire(2)
 code::
 (
 x = EventSource();
-x.storePrevious.dopost;
+x.storePrevious.do( postln(_) );
 x.fire(2);
 x.fire(3);
 )
@@ -74,7 +74,7 @@ x.fire(3);
 code::
 (
 x = EventSource();
-x.storePreviousWithT.dopost;
+x.storePreviousWithT.do( postln(_) );
 x.fire(2);
 x.fire(3);
 )
@@ -84,7 +84,7 @@ x.fire(3);
 code::
 (
 x = EventSource();
-x.changes.dopost;
+x.changes.do( postln(_) );
 x.fire(2);
 x.fire(2);
 x.fire(2);
@@ -99,7 +99,7 @@ x.fire(3);
 code::
 (
 x = EventSource();
-x.changedDirection.dopost;
+x.changedDirection.do( postln(_) );
 x.fire(2);
 x.fire(3);
 x.fire(4);
@@ -112,7 +112,7 @@ x.fire(2);
 code::
 (
 x = EventSource();
-x.decreasing.dopost;
+x.decreasing.do( postln(_) );
 x.fire(2);
 x.fire(3);
 x.fire(4);
@@ -125,7 +125,7 @@ x.fire(2);
 code::
 (
 x = EventSource();
-x.decreasing.dopost;
+x.decreasing.do( postln(_) );
 x.fire(2);
 x.fire(3);
 x.fire(4);
@@ -138,7 +138,7 @@ x.fire(2);
 code::
 (
 x = EventSource();
-x.withinRange(2,3).dopost;
+x.withinRange(2,3).do( postln(_) );
 x.fire(1);
 x.fire(2.5);
 )
@@ -149,7 +149,7 @@ x.fire(2.5);
 code::
 (
 x = EventSource();
-x.matchVal([1,2,3,4]).dopost;
+x.matchVal([1,2,3,4]).do( postln(_) );
 x.fire(1);
 x.fire(2.5);
 )
@@ -159,7 +159,7 @@ x.fire(2.5);
 code::
 (
 x = EventSource();
-x.threshold(0.5).dopost;
+x.threshold(0.5).do( postln(_) );
 x.fire(0);
 x.fire(1);
 x.fire(0);
@@ -170,7 +170,7 @@ x.fire(0);
 code::
 (
 x = EventSource();
-x.thresholdUp(0.5).dopost;
+x.thresholdUp(0.5).do( postln(_) );
 x.fire(0);
 x.fire(1);
 x.fire(0);
@@ -181,7 +181,7 @@ x.fire(0);
 code::
 (
 x = EventSource();
-x.thresholdDown(0.5).dopost;
+x.thresholdDown(0.5).do( postln(_) );
 x.fire(0);
 x.fire(1);
 x.fire(0);
@@ -193,7 +193,7 @@ x.fire(0);
 code::
 (
 x = EventSource();
-x.neventsWithinT(1.0,3).dopost;
+x.neventsWithinT(1.0,3).do( postln(_) );
 fork{
 	x.fire(1);
 	x.fire(1);
@@ -211,7 +211,7 @@ fork{
 code::
 (
 x = EventSource();
-x.speed.dopost;
+x.speed.do( postln(_) );
 x.fire(1);
 x.fire(2.5);
 )
@@ -247,7 +247,7 @@ slowdown: Only fire if new value arrived at least t seconds after last value. Do
 code::
 (
 x = EventSource();
-x.slowdown(0.1).dopost;
+x.slowdown(0.1).do( postln(_) );
 fork{
 x.fire(1);
 x.fire(2.5);
@@ -258,77 +258,12 @@ x.fire(22)
 )
 ::
 
-toggle: Iterate amongs n states, i.e. with 4 states goes 0, 1, 2, 3, 0, 1, 2, etc...
-
-code::
-(
-x = EventSource();
-p = postln(_);
-x.toggle(4).do(p);
-x.fire(0);
-x.fire(0);
-x.fire(0);
-x.fire(0);
-x.fire(0);
-x.fire(0);
-x.fire(0);
-)
-::
-
 ::
 
 instancemethods::
 
 method::do
 Run f every time a new event arrives.
-
-returns:: Unit
-
-code::
-(
-x = EventSource();
-f = { |x| postln("look what I got:"++x) };
-x.do(f);
-x.fire(3)
-)
-
-
-//stop the action
-(
-x.stopDoing(f);
-x.fire(4)
-)
-
-::
-
-
-
-method::doDef
-
-Run f every time a new event arrives and save the function using the name given
-
-argument::name 
-A key
-argument::f
-The function to call
-returns:: Unit
-
-code::
-(
-x = EventSource();
-x.doDef(\hello,{ |x| postln("look what I got:"++x) });
-x.fire(3)
-)
-(
-x.doDef(\hello,{ |x| postln("And now I print it like this:"++x) });
-x.fire(3)
-)
-(
-//remove the action
-x.doDef(\hello);
-x.fire(3)
-)
-::
 
 method::hold
 argument::initialValue

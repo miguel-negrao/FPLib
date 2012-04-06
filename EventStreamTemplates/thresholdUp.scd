@@ -2,9 +2,9 @@
 func:{ |eventSource, t = 0.5|
 	eventSource
 		.storePrevious
-		.select{ |array|
-         	var x,y;
-         	#x,y = array;
+		.select{ |tuple|
+         	var x = tuple.at1;
+         	var y = tuple.at2;
          	( x < t ) && ( y > t )
         }
         .collect{ \up }

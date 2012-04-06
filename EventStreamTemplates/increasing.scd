@@ -2,8 +2,8 @@
 func:{ |eventSource|
 	eventSource
 		.storePrevious
-		.select{ |array| array[1] > array[0] }
-		.collect{ |array| array[1] }
+		.select{ |tuple| tuple.at2 > tuple.at1 }
+		.collect{ |tuple| tuple.at2 }
 },
 desc: "Output only when values are increasing",
 name: "increasing"
