@@ -7,6 +7,31 @@
 */
 
 Option {
+
+  *initClass {
+
+  	Class.initClassTree(TypeClasses);
+  	//type instances declarations:
+
+	TypeClasses.addInstance(Option,
+		(
+			'fmap': { |fa,f| fa.collect(f) },
+			'bind' : { |fa,f| fa.flatCollect(f) },
+			'pure' : { |a| Some(a) }
+			/*
+			very intersting: traverse cannot be defined for Option in a dynamic language, because
+			there is no specification of what the class of f.(a) should be for None...
+			'traverse' : { |f,a|
+				var fa = f.(a);
+				if( a.isDefined) {
+					f.a.fmap{ |x| Some(x) }
+				} {
+					None.pure(?????)
+				}
+			}*/
+		)
+	);
+  }
 	  
   *new{ |x| ^if (x.isNil){ None }{ Some(x) } }
   

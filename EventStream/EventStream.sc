@@ -25,7 +25,21 @@
    translated to SuperCollider by Miguel Negrao.
 */
 
-EventStream{ }
+EventStream{
+
+	*initClass {
+		Class.initClassTree(TypeClasses);
+		//type instances declarations:
+
+		TypeClasses.addInstance(EventSource,
+			(
+				'fmap': { |fa,f| fa.collect(f) },
+				'bind' : { |fa,f| fa.flatCollect(f) }
+			);
+		);
+	}
+
+}
 
 EventSource : EventStream {
 	classvar <eventStreamTemplateFolders;

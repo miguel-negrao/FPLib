@@ -27,37 +27,6 @@ TypeClasses {
         var metaRules;
 		dict = IdentityDictionary.new;
 
-		dict.put(EventSource,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'bind' : { |fa,f| fa.flatCollect(f) }
-			);
-		);
-        dict.put(FPSignal,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'bind' : { |fa,f| fa.flatCollect(f) },
-				'pure' : { |a| Var(a) }
-			);
-		);
-		dict.put(Option,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'bind' : { |fa,f| fa.flatCollect(f) },
-				'pure' : { |a| Some(a) }
-				/*
-				very intersting: traverse cannot be defined for Option in a dynamic language, because
-				there is no specification of what the class of f.(a) should be for None...
-				'traverse' : { |f,a|
-					var fa = f.(a);
-					if( a.isDefined) {
-						f.a.fmap{ |x| Some(x) }
-					} {
-						None.pure(?????)
-					}
-				}*/
-			);
-		);
 		dict.put(Array,
 			(
 				'fmap': { |fa,f| fa.collect(f) },
@@ -78,14 +47,8 @@ TypeClasses {
 
 			);
 		);
-		dict.put(IO,
-			(
-				'fmap': { |fa,f| IO{ f.(fa.value) } },
-				'bind': { |fa,f| IO{ f.(fa.value).value } },
-				'pure': { |a| IO{ a } }
-			)
-		);
 
+        //Use startup for the meta rules ?
 		metaRules = [
 			//all Monads are Applicative functors
 			[ ['bind'], ('apply' : { |f,fa| f >>= { |g| fa.fmap( g ) } } ) ]
@@ -112,6 +75,10 @@ TypeClasses {
 			}
 		};
 		^g.(class)
+	}
+
+	*addInstance { |class, subdict|
+		dict.put(class, subdict)
 	}
 
 }

@@ -28,6 +28,19 @@
 
 FPSignal {
 
+	*initClass {
+		Class.initClassTree(TypeClasses);
+    	//type instances declarations:
+
+    	TypeClasses.addInstance(FPSignal,
+			(
+				'fmap': { |fa,f| fa.collect(f) },
+				'bind' : { |fa,f| fa.flatCollect(f) },
+				'pure' : { |a| Var(a) }
+			)
+    	);
+	}
+
 	now { }
 
 	changes { } //returns EventStream

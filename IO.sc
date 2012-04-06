@@ -20,6 +20,18 @@ IO{
 	var <func;
 	*new{ |func| ^super.newCopyArgs(func) }
 
+	*initClass{
+		Class.initClassTree(TypeClasses);
+		//type instances declarations:
+		TypeClasses.addInstance(this,
+			(
+				'fmap': { |fa,f| IO{ f.(fa.value) } },
+				'bind': { |fa,f| IO{ f.(fa.value).value } },
+				'pure': { |a| IO{ a } }
+			)
+		);
+	}
+
 	unsafePerformIO{ ^func.value }
 	value{ ^func.value }
 }
