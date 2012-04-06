@@ -1,6 +1,5 @@
 +Dictionary{
 	get{ |key|
-		var x = this.at(key);
-		^if(x.isNil){ None }{ Some(x) }
+		^this.at(key) !? Some(_) ?? None
 	}
 }
