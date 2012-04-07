@@ -73,6 +73,10 @@ FPSignal {
     flatCollectR { |f, initialState|
         ^FlatCollectedFPSignalR( this, f, initialState)
     }
+    
+    <**> { |fa|
+		^this.flatCollectR{ |g| fa.fmap( g ) }    
+    }
 
     bus { |server|
     	^this.changes.bus( server, this.now )

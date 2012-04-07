@@ -170,3 +170,17 @@ y.value_(3.0);
 z.value_(1.0);
 )
 ::
+
+
+The code above will cause a build up of EventStreams you should use instead <**> which internally will use flatCollectR
+
+code::
+x = Var(1.0);
+y = Var(2.0);
+z = Var(6.0);
+w = { |x,y,z| x + y + z } <%> x <**> y <**> z;
+w.do( postln(_) );
+x.value_(9.0);
+y.value_(3.0);
+z.value_(1.0);
+::
