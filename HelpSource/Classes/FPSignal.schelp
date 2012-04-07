@@ -153,3 +153,20 @@ b.do{ |z| x.map(\freq, z.at1) }
 //change freq to 200
 y.value_( 200 );
 ::
+
+Examples::
+
+Combine Signals using a function:
+
+code::
+(
+x = Var(1.0);
+y = Var(1.0);
+z = Var(1.0);
+w = { |x,y,z| x + y + z } <%> x <*> y <*> z; //analogous to { |x,y,z| x + y + z }.(1.0,1.0,1.0)
+w.do( postln(_) );
+x.value_(9.0);
+y.value_(3.0);
+z.value_(1.0);
+)
+::

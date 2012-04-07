@@ -54,8 +54,9 @@ TypeClasses {
 			[ ['bind'], ('apply' : { |f,fa| f >>= { |g| fa.fmap( g ) } } ) ]
 		];
 
-    	//change this to immutable once we have immutable collections
-		metaRules.do{ |rule|
+    		//change this to immutable once we have immutable collections
+		StartUp.add {
+Ê Ê Ê Ê		metaRules.do{ |rule|
 			dict.do{ |innerDict|
 				//if the class is an instance of all the typeclasses declared in the rule
 				//then add the payload
@@ -63,7 +64,7 @@ TypeClasses {
 					innerDict.putAll( rule[1] )
 				}
 			}
-		}
+		}}
 	}
 
 	*getSuperclassImplementation { |class, funcName|
