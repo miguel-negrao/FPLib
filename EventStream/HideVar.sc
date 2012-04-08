@@ -15,7 +15,7 @@ HideVar : Var {
 	}
 
 	value_  { |x|
-		super.value_( Tuple2( \external, x) )
+		^super.value_( Tuple2( \external, x) )
 	}
 
 	changes {
@@ -28,7 +28,7 @@ HideVar : Var {
 
 	//must be a Tuple2
 	internalValue_ { |x|
-		super.value_( Tuple2( \internal, x) )
+		^super.value_( Tuple2( \internal, x) )
 	}
 
 	allChanges {

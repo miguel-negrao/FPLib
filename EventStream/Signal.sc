@@ -213,6 +213,7 @@ Var : Val {
     value_ { |v|
     	now = v;
     	changes.fire(v);
+    	^Unit
     }
 
 }

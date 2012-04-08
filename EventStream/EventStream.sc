@@ -40,7 +40,7 @@ EventStream{
 			);
 		);
 
-		doFuncs = ();
+		doFuncs = Dictionary.new;
 	}
 
 }
@@ -156,12 +156,14 @@ EventSource : EventStream {
     doDef { |name, f|
 		var dict = EventStream.doFuncs;
 		f !? {
+			var key = [ this, name ];
 			this.do(f);
-			dict.at(name) !? { |oldf| this.stopDoing( oldf ) };
-			dict.put(name,f)
+			dict.at( key ) !? { |oldf| this.stopDoing( oldf ) };
+			dict.put( key, f)
 		} ?? {
-			dict.at(name) !? { |oldf| this.stopDoing( oldf ) };
-			dict.put(name, nil)
+			var key = [ this, name ];
+			dict.at( key ) !? { |oldf| this.stopDoing( oldf ) };
+			dict.put( key , nil)
 		};
 		^Unit
     }
