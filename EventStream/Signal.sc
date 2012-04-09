@@ -62,6 +62,16 @@ FPSignal {
 		^Unit
 	}
 
+	reset {
+		this.changes.reset;
+		^Unit
+	}
+
+	remove {
+		this.changes.remove;
+		^Unit
+	}
+
 	collect { |f|
         ^CollectedFPSignal(this,f)
     }

@@ -248,6 +248,10 @@ ChildEventSource : EventSource {
     remove {
         parent.removeListener( listenerFunc )
     }
+
+	<**> { |fa|
+		^this.flatCollectR{ |g| fa.fmap( g ) }
+	}
 }
 
 CollectedES : ChildEventSource {
