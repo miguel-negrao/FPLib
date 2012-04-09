@@ -81,10 +81,6 @@ WaitES : EventSource {
     }
 
     init { |waitTime, value|
-
-        routine = fork{
-	        waitTime.wait;
-            this.fire(value);
-        }
+	   SystemClock.sched(waitTime, { this.fire(value) })
     }
 }
