@@ -90,7 +90,7 @@ FPSignal {
         ^FlatCollectedFPSignal( this, f, initialState)
     }
 
-    fold { |init, f|
+    inject { |init, f|
     	^FoldedFPSignal( this, init, f)
     }
 

@@ -2,7 +2,7 @@
 func:{ |eventSource, waitTime = 0.5, n = 2|
 	eventSource
 		.collect{ Process.elapsedTime }
-        .fold([0.0], { |times, t|
+        .inject([0.0], { |times, t|
         	if( (t - times[0]) < t ) {
         		times++[t]
         	} {

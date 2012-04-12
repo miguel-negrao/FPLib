@@ -124,7 +124,7 @@ x.value_(5);
 y.value_(6);
 ::
 
-method::fold
+method::inject
 Allows one, in a functional manner, to respond to an event while taking into account past events. For every event t, f is called with arguments (u, t), where u is initially the value of the 'initial' parameter, and subsequently the result of the previous application of f.
 returns:: A new FPSignal that, for every event t fired by the original FPSignal, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
 discussion::
@@ -132,7 +132,7 @@ An FPSignal that sums all the integer values fired by the parent FPSignal.
 code::
 (
 x = Var(1.0);
-y = x.fold( 0, {|state,b| state + b });
+y = x.inject( 0, {|state,b| state + b });
 y.do(_.postln);
 x.value_(1);
 x.value_(4);

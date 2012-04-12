@@ -399,7 +399,7 @@ x.fire(4);
 )
 ::
 
-method::fold
+method::inject
 Allows one, in a functional manner, to respond to an event while taking into account past events. For every event t, f is called with arguments (u, t), where u is initially the value of the 'initial' parameter, and subsequently the result of the previous application of f.
 returns:: A new EventStream that, for every event t fired by the original EventStream, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
 discussion::
@@ -407,7 +407,7 @@ An EventStream that sums all the integer values fired by the parent EventStream.
 code::
 (
 x = EventSource();
-y = x.fold( 0, {|state,b| state + b });
+y = x.inject( 0, {|state,b| state + b });
 y.do(_.postln);
 x.fire(1);
 x.fire(4);
@@ -573,7 +573,7 @@ With GUIs:
 (
 t = QTextField();
 b = Button();
-b.esFromGUI.fold(0, { |state, x| state+1 }).connect(t);
+b.esFromGUI.inject(0, { |state, x| state+1 }).connect(t);
 w = Window(bounds:Rect(200,200,130,50)).layout_( HLayout( b, t ) ).front;
 )
 ::

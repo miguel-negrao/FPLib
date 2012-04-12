@@ -133,7 +133,7 @@ EventSource : EventStream {
         ^SelectedES(this, f)
     }
 
-    fold { |initial, f|
+    inject { |initial, f|
         ^FoldedES(this, initial, f);
     }
 

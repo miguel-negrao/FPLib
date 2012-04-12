@@ -1,7 +1,7 @@
 (
 func:{ |eventSource, t = 1.0|
 	eventSource
-		.fold( Tuple3( 0.0, 0.0, true ), { |tuple, newV|
+		.inject( Tuple3( 0.0, 0.0, true ), { |tuple, newV|
 			var tOutputed = tuple.at1;
 			var xOutputed = tuple.at2;
 			var bool = tuple.at3;
