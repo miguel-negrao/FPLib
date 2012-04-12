@@ -28,6 +28,7 @@
 EventStream{
 
 	classvar <doFuncs;
+	classvar <>debug = false;
 
 	*initClass {
 		Class.initClassTree(TypeClasses);
@@ -102,16 +103,18 @@ EventSource : EventStream {
         ^super.new.initEventSource
     }
 
+    //private
     initEventSource {
         listeners = [];
     }
 
-    addListener { |f| listeners = listeners ++ [f] }
+    addListener { |f| listeners = listeners ++ [f]; ^Unit }
 
-    removeListener { |f| listeners.remove(f) }
+    removeListener { |f| listeners.remove(f); ^Unit }
     
-    reset { listeners = [] }
+    reset { listeners = []; ^Unit }
 
+	//private
 	proc { |initialState, f|
 		^ChildEventSource( initialState ).initChildEventSource(this,f)
 	}
@@ -178,7 +181,14 @@ EventSource : EventStream {
 	    //copy is used here because listerFuncs might mutate the listeners variable
 	    //change this to a FingerTree in the future.
         listeners.copy.do( _.value(event) );
+        if(EventStream.debug) { postln("-> "++this++" : "++event)};
         ^Unit
+    }
+
+    //connect to an object that responds to .value_
+    connect{ |object|
+    	this.do{ |v| defer{ object.value_(v) } };
+    	^Unit
     }
 
 	//returns the corresponding signal
@@ -186,7 +196,7 @@ EventSource : EventStream {
     	^HoldFPSignal(this, initialValue)
     }
 
-    remove { }
+    remove { ^Unit }
 
     bus { |server, initVal = 0.0|
 		server = server ?? {Server.default};
@@ -201,6 +211,10 @@ EventSource : EventStream {
 		}
 	}
 
+}
+
+NothingES : EventSource {
+	fire { ^Unit }
 }
 
 HoldFPSignal : FPSignal {
@@ -235,6 +249,7 @@ ChildEventSource : EventSource {
         state = initialState;
     }
 
+	//private
     initChildEventSource { |p,h, initialFunc|
         parent = p;
         handler = h;
@@ -246,7 +261,7 @@ ChildEventSource : EventSource {
     }
 
     remove {
-        parent.removeListener( listenerFunc )
+        parent.removeListener( listenerFunc ); ^Unit
     }
 
 	<**> { |fa|

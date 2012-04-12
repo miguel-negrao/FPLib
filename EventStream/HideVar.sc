@@ -26,13 +26,13 @@ HideVar : Var {
 		^super.now.at2
 	}
 
+	value { 
+		^super.now.at2
+	}
+
 	//must be a Tuple2
 	internalValue_ { |x|
 		^super.value_( Tuple2( \internal, x) )
-	}
-
-	allChanges {
-		^changes
 	}
 
 	externalChanges {

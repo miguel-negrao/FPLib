@@ -47,29 +47,29 @@ FPSignal {
 
 	do { |f|
 		f.(this.now);
-		this.changes.do(f);
-		^Unit
+		^this.changes.do(f);
 	}
 
 	doDef { |name, f|
 		f.(this.now);
-		this.changes.doDef(name, f)
-		^Unit
+		^this.changes.doDef(name, f)
 	}
 
 	stopDoing { |f|
-		this.changes.stopDoing(f);
-		^Unit
+		^this.changes.stopDoing(f);
+	}
+
+	connect { |object|
+		this.do{ |v| defer{ object.value_(v) } };
+       ^Unit
 	}
 
 	reset {
-		this.changes.reset;
-		^Unit
+		^this.changes.reset;
 	}
 
 	remove {
-		this.changes.remove;
-		^Unit
+		^this.changes.remove;
 	}
 
 	collect { |f|
