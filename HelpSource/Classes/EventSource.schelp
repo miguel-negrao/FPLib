@@ -11,11 +11,6 @@ For more info see:
 
 http://www.reactive-web.co.cc/core/EventStream
 
-note::
-Right now because sc does not have weak references, this can cause a build up of EventStreams when using flatCollect. When creating new EventSources inside the flatCollect function, use instead flatCollectR.
-::
-
-
 An EventStream is a source of events (arbitrary values sent to listener functions). You can fire events from it, you can react to events with any behavior, and you can create derived EventStreams, whose events are based on the original EventStream.
 
 An EventStream is like a collection in the sense that it consists of multiple values. However, unlike actual collections, the values are not available upon request; they occur whenever they occur. Nevertheless, many operations that apply to collections apply to event streams. To react to events, use foreach or foldLeft. To create derived, transformed EventStreams, use map, flatMap, filter, foldLeft, and the | (union) operator. Note that you can of course use for comprehensions as syntactic sugar for many of the above.
@@ -304,7 +299,7 @@ PRIVATE:: addListener, doesNotUnderstand, initEventSource, listeners, proc, remo
 
 method:: new
 
-Create a new EventSourceSynta
+Create a new EventSource
 
 METHOD:: fire
 
@@ -347,7 +342,7 @@ method::doDef
 
 Run f every time a new event arrives and save the function using the name given
 
-argument::name 
+argument::name
 A key
 argument::f
 The function to call
@@ -423,10 +418,6 @@ x.fire(7)
 method::flatCollect
 Create a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
 
-note::
-Because of SuperCollider's lack of weak references, if you create a new EventSource in the function passed to flatCollect there will be a build up of EventSources, and the handler functions of those EventSources will be run every time the parent EventSource is fired. To avoid this use an flatCollectR instead.
-
-::
 argument::f
 f the function that is applied for every event to produce the next segment of the resulting EventStream.
 discussion::
@@ -452,74 +443,6 @@ x.fire(1);
 y.fire(1);
 z.fire(4);
 )
-
-//this is the correct syntax but will cause a build up of EventSources
-(
-x = EventSource();
-y = EventSource();
-z = x.flatCollect{ |x| y.collect{ |y| "Ping".postln; [x,y] } };
-z.do(_.postln);
-)
-//run this multiple times
-x.fire(1);
-//you will get multiple pings, when you should have only one.
-y.fire(4);
-
-//Now with an flatCollectR
-(
-x = EventSource();
-y = EventSource();
-z = x.flatCollectR{ |x| y.collect{ |y| "Ping".postln; [x,y] } };
-z.do(_.postln);
-)
-//run this multiple times
-x.fire(1);
-//only one ping.
-y.fire(4);
-
-::
-
-method::flatCollectR
-Create a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
-
-This method differs from flatCollectR such that when receiving a new EventStream it will disconnect the old EventStream from it's parent, therefore it should only used when creating a new EventStream inside the flatCollect function.
-
-NOTE::
-If you do not create a new EventSource inside f bad things will happen !!!!!
-Also this will only work with chains that are one level deep, i.e., it will work with code::z = x.flatCollectR{ |x| y.collect{ |y| "Ping".postln; [x,y] } };:: but not with code::z = x.flatCollectR{ |x| y.collect{|y|y}.{ |y| "Ping".postln; [x,y] } };::
-::
-code::
-
-//here you should use flatCollect
-// no new EventSources created inside flatCollect
-(
-x = EventSource();
-y = EventSource().collect(_+10);
-z = EventSource().collect(_+20);
-w = x.flatCollect{ |v|
- if(v==0){y}{z}
-};
-w.do(_.postln);
-)
-(
-//will get value from y
-x.fire(0);
-y.fire(1);
-z.fire(4);
-)
-
-// here you should use flatCollectR
-// y.collect creates a new EventSource
-(
-x = EventSource();
-y = EventSource();
-z = x.flatCollectR{ |x| y.collect{ |y| [x,y] } };
-z.do(_.postln);
-)
-x.fire(1);
-y.fire(4);
-::
-
 
 method::|
 Merges the output of the two EventSources.
@@ -587,8 +510,8 @@ Removes all listeners. This will disconnect this EventSource from the rest of th
 code::
 (
 x = EventSource();
-y = x.collect(_+10);
-y.do(postln(_));
+y = x.collect(_+10).do(postln(_));
+y = x.collect(_+100).do(postln(_));
 x.fire(2);
 )
 

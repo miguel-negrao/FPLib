@@ -28,6 +28,8 @@
 
 FPSignal {
 
+	classvar <>buildFlatCollect;
+
 	*initClass {
 		Class.initClassTree(TypeClasses);
     	//type instances declarations:
@@ -39,6 +41,14 @@ FPSignal {
 				'pure' : { |a| Var(a) }
 			)
     	);
+	}
+
+	*new {
+	   ^super.new.initFPSignal
+	}
+
+	initFPSignal {
+		FPSignal.buildFlatCollect = FPSignal.buildFlatCollect.collect( _.orElse( Some(this) ) );
 	}
 
 	now { }
@@ -80,12 +90,8 @@ FPSignal {
         ^FlatCollectedFPSignal( this, f, initialState)
     }
 
-    flatCollectR { |f, initialState|
-        ^FlatCollectedFPSignalR( this, f, initialState)
-    }
-    
-    <**> { |fa|
-		^this.flatCollectR{ |g| fa.fmap( g ) }    
+    fold { |init, f|
+    	^FoldedFPSignal( this, init, f)
     }
 
     bus { |server|
@@ -158,49 +164,58 @@ FlatCollectedFPSignal : ChildFPSignal {
     }
 
     init { |parent, f|
+    	var initSignal, initialState;
         var thunk = { |x|
         	//("thunk was called with event "++x).postln;
             now = x;
             changes.fire( x );
         };
-        var initialState = f.(parent.now);
-        initialState.changes !? _.addListener(thunk);
-        this.initChildFPSignal(parent, { |event, lastFPSignal|
-             var nextFPSignal;
-             //("handler called with event "++event++" and state "++state).postln;
-             lastFPSignal.changes !? _.removeListener( thunk );
-             nextFPSignal = f.(event);
-             thunk.( nextFPSignal.now );
-             nextFPSignal.changes !? _.addListener( thunk );
-             nextFPSignal
-        }, initialState, _.now)
+        FPSignal.buildFlatCollect = Some(None);
+        initSignal = f.(parent.now);
+        initialState = Tuple2(FPSignal.buildFlatCollect.get,initSignal);
+        FPSignal.buildFlatCollect = None;
+        initSignal.changes !? _.addListener(thunk);
+        this.initChildFPSignal(parent, { |event, tuple|
+             var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
+             //start of the old created chain
+             lastSigStart = tuple.at1;
+             //end of old created chain
+             lastSigEnd = tuple.at2;
+             //stop receiving events from old chain
+             lastSigEnd.changes !? _.removeListener( thunk );
+              //disconnect the old chain from it's start point
+             lastSigStart.do{ |x| x.tryPerform(\remove) };
+             //let's discover where the new chain starts
+             FPSignal.buildFlatCollect = Some(None);
+             nextSigEnd = f.(event);
+             //if a new EventSource was created the first one created will be here:
+             nextSigStart = FPSignal.buildFlatCollect.get;
+             //reset the global variable
+             FPSignal.buildFlatCollect = None;
+             thunk.( nextSigEnd.now );
+             //start receiving events from new EventStream
+             nextSigEnd.changes !? _.addListener( thunk );
+             //store the new chain
+             Tuple2(nextSigStart, nextSigEnd);
+             
+        }, initialState, { |x| x.at2.now })
     }
 }
 
-FlatCollectedFPSignalR : ChildFPSignal {
+FoldedFPSignal : ChildFPSignal {
 
-    *new { |parent, f|
-        ^super.new.init(parent, f)
+    *new { |parent, initial, f|
+        ^super.new.init(parent, initial, f)
     }
 
-    init { |parent, f|
-        var thunk = { |x|
-        	//("thunk was called with event "++x).postln;
-            now = x;
-            changes.fire( x );
-        };
-        var initialState = f.(parent.now);
-        initialState.changes !? _.addListener(thunk);
-        this.initChildFPSignal(parent, { |event, lastFPSignal|
-             var nextFPSignal;
-             //("handler called with event "++event++" and state "++state).postln;
-             lastFPSignal.changes !? _.removeListener( thunk );
-             lastFPSignal.tryPerform(\remove);
-             nextFPSignal = f.(event);
-             thunk.( nextFPSignal.now );
-             nextFPSignal.changes !? _.addListener( thunk );
-             nextFPSignal
-        }, initialState, _.now)
+    init { |parent, initial, f|
+    	var initfold = f.(initial, parent.now );
+        this.initChildFPSignal(parent, { |event, state|
+            var next = f.(state, event);
+            now = next;
+            changes.fire( next );
+            next
+        }, initfold, { |x| x })
     }
 }
 

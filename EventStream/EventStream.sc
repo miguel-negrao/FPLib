@@ -29,6 +29,7 @@ EventStream{
 
 	classvar <doFuncs;
 	classvar <>debug = false;
+	classvar <>buildFlatCollect;
 
 	*initClass {
 		Class.initClassTree(TypeClasses);
@@ -42,6 +43,7 @@ EventStream{
 		);
 
 		doFuncs = Dictionary.new;
+		buildFlatCollect = [];
 	}
 
 }
@@ -99,12 +101,16 @@ EventSource : EventStream {
 		}.flatten
 	}
 
-    new{
+    *new{
         ^super.new.initEventSource
     }
 
     //private
     initEventSource {
+    	var lastIndex = EventStream.buildFlatCollect.size-1;
+    	if( (lastIndex != -1) and: {EventStream.buildFlatCollect[lastIndex].isEmpty}) {
+    		EventStream.buildFlatCollect[lastIndex] = Some(this)
+    	};
         listeners = [];
     }
 
@@ -134,10 +140,6 @@ EventSource : EventStream {
     flatCollect { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
-
-    flatCollectR { |f, initialState|
-		^FlatCollectedESR( this, f, initialState)
-	}
 
     | { |otherES|
         ^MergedES( this, otherES )
@@ -264,9 +266,6 @@ ChildEventSource : EventSource {
         parent.removeListener( listenerFunc ); ^Unit
     }
 
-	<**> { |fa|
-		^this.flatCollectR{ |g| fa.fmap( g ) }
-	}
 }
 
 CollectedES : ChildEventSource {
@@ -314,47 +313,48 @@ FoldedES : ChildEventSource {
 
 FlatCollectedES : ChildEventSource {
 
-    *new { |parent, f, initial|
-        ^super.new(initial).init(parent, f)
+	var thunk;
+
+    *new { |parent, f, init|
+        ^super.new(Tuple2(None,init)).init(parent, f)
     }
 
     init { |parent, f|
-        var thunk = { |x|
-         	//"firing the FlatCollectedES".postln;
-         	this.fire(x) 
-        };
-        state !? _.addListener(thunk);
-        this.initChildEventSource(parent, { |event, lastES|
-             var nextES;
-             lastES !? _.removeListener( thunk );
-             nextES = f.(event);
-             nextES !? _.addListener( thunk );
-             nextES
-        })
-    }
-}
-
-FlatCollectedESR : ChildEventSource {
-
-    *new { |parent, f, initial|
-        ^super.new(initial).init(parent, f)
-    }
-
-    init { |parent, f|
-        var thunk = { |x|
+        thunk = { |x|
          	//"firing the FlatCollectedES".postln;
          	this.fire(x)
         };
-        state !? _.addListener(thunk);
-        this.initChildEventSource(parent, { |event, lastES|
-             var nextES;
-             lastES !? _.removeListener( thunk );
-             lastES !? { |x| x.tryPerform(\remove) };
-             nextES = f.(event);
-             nextES !? _.addListener( thunk );
-             nextES
+        state.at2 !? _.addListener(thunk);
+        this.initChildEventSource(parent, { |event, tuple|
+             var lastESStart, lastESEnd, nextESStart, nextESEnd;
+             //start of the old created chain
+             lastESStart = tuple.at1;
+             //end of old created chain
+             lastESEnd = tuple.at2;
+             //stop receiving events from old chain
+             lastESEnd !? _.removeListener( thunk );
+              //disconnect the old chain from it's start point
+             lastESStart.do{ |x| x.tryPerform(\remove) };
+             //let's discover where the new chain starts
+             //I don't think that there is a situation where another flatcollect handler would be started here but who knows...
+             EventStream.buildFlatCollect = EventStream.buildFlatCollect.add(None);
+             nextESEnd = f.(event);
+             //if a new EventSource was created the first one created will be here:
+             nextESStart = EventStream.buildFlatCollect.pop(-1);
+             //start receiving events from new EventStream
+             nextESEnd !? _.addListener( thunk );
+             //store the new chain
+             Tuple2(nextESStart, nextESEnd);
         })
     }
+
+        remove {
+            parent.removeListener( listenerFunc );
+            //if a new EventSource chain was created inside the flat collect it also must be removed.
+            //this should recursevilly trickle down other flatCollects inside this one.
+        	state.at1.collect(_.remove);
+            ^Unit
+        }
 }
 
 TakeWhileES : ChildEventSource {

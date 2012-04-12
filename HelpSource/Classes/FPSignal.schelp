@@ -11,24 +11,23 @@ For more info see:
 
 http://www.reactive-web.co.cc/core/Signal
 
-note::
-Right now because sc does not have weak references, this can cause a build up of EventStreams when using flatCollect.
-::
+CLASSMETHODS::
 
+PRIVATE:: buildFlatCollect
+
+METHOD:: new
+
+not to be used directly, use instead Var or Val.
 
 instancemethods::
+
+PRIVATE::initFPSignal
+
 method::now
 the current value of the Signal
 
-method::changes
-An EventSource which fires events every time the signal changes.
 
-code::
-(
-x = Var(2);
-x.changes;
-)
-::
+SUBSECTION::Perform Side-Effects
 
 method::do
 When the Signal changes, runs f with new value.
@@ -75,6 +74,27 @@ x.value_(3)
 )
 ::
 
+method::stopDoing
+
+Stop running function f.
+argument::f
+A function
+returns:: Unit
+
+
+SUBSECTION::Combinators
+
+
+method::changes
+An EventSource which fires events every time the signal changes.
+
+code::
+(
+x = Var(2);
+x.changes;
+)
+::
+
 method::collect
 argument::f
 f: A => B
@@ -104,40 +124,63 @@ x.value_(5);
 y.value_(6);
 ::
 
-method::flatCollectR
-argument::f
-f: A => FPSignal[B]
-
-NOTE::
-If you do not create a new FPSignal inside f bad things will happen !!!!!
-Also this will only work with chains that are one level deep, i.e., it will work with code::z = x.flatCollectR{ |x| y.collect{ |y| "Ping".postln; [x,y] } };:: but not with code::z = x.flatCollectR{ |x| y.collect{|y|y}.{ |y| "Ping".postln; [x,y] } };::
+method::fold
+Allows one, in a functional manner, to respond to an event while taking into account past events. For every event t, f is called with arguments (u, t), where u is initially the value of the 'initial' parameter, and subsequently the result of the previous application of f.
+returns:: A new FPSignal that, for every event t fired by the original FPSignal, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
+discussion::
+An FPSignal that sums all the integer values fired by the parent FPSignal.
+code::
+(
+x = Var(1.0);
+y = x.fold( 0, {|state,b| state + b });
+y.do(_.postln);
+x.value_(1);
+x.value_(4);
+x.value_(7)
+)
 ::
 
-discussion::
-code::
-//this is the correct syntax but will cause a build up of EventSources
-(
-x = Var(1);
-y = Var(2);
-z = x.flatCollect{ |x| y.collect{ |y| "Ping".postln; [x,y] } };
-z.do(_.postln);
-)
-//run this multiple times
-x.value_(3);
-//you will get multiple pings, when you should have only one.
-y.value_(4);
+SUBSECTION::Disconnect from network
 
-//Now with an flatCollectR
+method::remove
+
+Disconnects this FPSignal from the parent FPSignal (if it has a parent). If the FPSignal is not assigned to any variable anymore it will be gc'ed.
+
+code::
 (
-x = Var(1);
-y = Var(2);
-z = x.flatCollectR{ |x| y.collect{ |y| "Ping".postln; [x,y] } };
-z.do(_.postln);
+x = Var(1.0);
+y = x.collect(_+10);
+y.do(postln(_));
+x.value_(2);
 )
-//run this multiple times
+
+(
+y.remove;
 x.value_(3);
-//only one ping.
-y.value_(4);
+//nothing is posted
+)
+
+//now the EventSource that was assigned to y can be gc'ed.
+y = nil;
+::
+
+method::reset
+
+Removes all listeners. This will disconnect this EventSource from the rest of the chain that depends on it, and the rest of the chain will be gc'ed.
+
+code::
+(
+x = Var(1.0);
+x.collect(_+10).do(postln(_));
+x.collect(_+100).do(postln(_));
+x.value_(2);
+)
+
+(
+x.reset;
+x.value_(3);
+//nothing is posted
+)
 ::
 
 SUBSECTION:: Interaction with Server
@@ -189,20 +232,29 @@ z.value_(1.0);
 )
 ::
 
-
-The code above will cause a build up of EventStreams you should use instead <**> which internally will use flatCollectR
-
+FPSignal is a Applicative Functor so we can use the apply method <*>. Applicative Functors in essence allow to "lift" a n-ary function from a domain A to a domain B, in this case it lifts functions on any type to functions on FPSignals.
+We could define a lift function for each number of arguments like so:
 code::
+~lift2 = { |f| { |a,b| f <%> a <*> b } };
+~lift3 = { |f| { |a,b,c| f <%> a <*> b <*> c } };
+...
+::
+
+then the above would be equivalent to :
+code::
+(
 x = Var(1.0);
-y = Var(2.0);
-z = Var(6.0);
-w = { |x,y,z| x + y + z } <%> x <**> y <**> z;
+y = Var(1.0);
+z = Var(1.0);
+f = { |x,y,z| x + y + z };
+//we apply the lifted function on the signals.
+w = ~lift3.(f).(x,y,z);
 w.do( postln(_) );
 x.value_(9.0);
 y.value_(3.0);
 z.value_(1.0);
+)
 ::
-
 
 With GUIs:
 
