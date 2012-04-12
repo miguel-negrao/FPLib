@@ -26,10 +26,10 @@ list::
 ## the imperative way is to call .remove on the event stream.
 ::
 
-subsection::Type Classes
+SUBSECTION::Type Classes
 EventSource is an instance of the Functor Type Class. It does not implement the 'pure' function therefore it is not a Monad or an Applicative Functor. It does implement the 'bind' or '>>=' function.
 
-subsection::Templates
+SUBSECTION::Templates
 
 Templates can be defined by placing a file in a EventStreamTemplates folder in the Extensions folder. The library comes already with some templates.
 
@@ -277,11 +277,46 @@ x.fire(0);
 
 ::
 
+CLASSMETHODS::
+
+PRIVATE:: availableTemplates, cleanTemplateName, eventStreamTemplateFolders, getEventSourceTemplate,getTemplateFilePaths
+
+METHOD::availableTemplates
+
+Lists available templates.
+
+METHOD::eventStreamTemplateFolders
+
+Folders where to look for templates.
+
+By default the folders are
+
+code::
+[this.filenameSymbol.asString.dirname.dirname +/+ "EventStreamTemplates",
+Platform.userAppSupportDir++"/Extensions/EventStreamTemplates/"]
+::
+
+So the folder included with the quark and a folder in the Extensions folder.
+
 instancemethods::
+
+PRIVATE:: addListener, doesNotUnderstand, initEventSource, listeners, proc, removeListener
+
+method:: new
+
+Create a new EventSourceSynta
+
+METHOD:: fire
+
+Emit an event to all registered listeners.
+This will send an event into the event processing network.
+
+SUBSECTION::Perform Side-Effects
 
 method::do
 Run f every time a new event arrives.
-
+argument::f
+ A function
 returns:: Unit
 
 code::
@@ -301,7 +336,12 @@ x.fire(4)
 
 ::
 
+method::stopDoing
 
+Stop running function f.
+argument::f
+A function
+returns:: Unit
 
 method::doDef
 
@@ -329,6 +369,10 @@ x.doDef(\hello);
 x.fire(3)
 )
 ::
+
+SUBSECTION::Combinators
+
+Methods to combine EventSource's into a network of event processing nodes.
 
 method::hold
 argument::initialValue
@@ -438,8 +482,12 @@ y.fire(4);
 method::flatCollectR
 Create a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
 
-This method differs from flatCollectR such that when receiving a new EventStream it will disconnect the old EventStream from it's parent, therefore it should only used when creating a new EventStream inside the flatCollect function:
+This method differs from flatCollectR such that when receiving a new EventStream it will disconnect the old EventStream from it's parent, therefore it should only used when creating a new EventStream inside the flatCollect function.
 
+NOTE::
+If you do not create a new EventSource inside f bad things will happen !!!!!
+Also this will only work with chains that are one level deep, i.e., it will work with code::z = x.flatCollectR{ |x| y.collect{ |y| "Ping".postln; [x,y] } };:: but not with code::z = x.flatCollectR{ |x| y.collect{|y|y}.{ |y| "Ping".postln; [x,y] } };::
+::
 code::
 
 //here you should use flatCollect
@@ -508,6 +556,8 @@ x.fire(4);
 )
 ::
 
+SUBSECTION::Disconnect from network
+
 method::remove
 
 Disconnects this EventStream from the parent EventStream (if it has a parent). If the EventStream is not assigned to any variable anymore it will be gc'ed.
@@ -549,6 +599,8 @@ x.fire(3);
 )
 ::
 
+SUBSECTION:: Interaction with Server
+
 method::bus
 
 create a bus and add a function to the event stream that updates the bus.
@@ -569,6 +621,15 @@ b.do{ |z| x.map(\freq, z.at1) }
 y.fire( 200 );
 ::
 
+SUBSECTION:: Interaction with GUIs
+You can use code::esFromGUI:: to get an EventSource from the GUI and the method 'connect' to connect the end of the network to an object that responds to value_
+
+METHOD::connect
+
+Connect this EventSource to an object. Everytime the EventSource fires an event the object's value_ method is called with the value.
+ARGUMENT:: object
+An object that responds to value_
+
 Examples::
 
 code::
@@ -581,3 +642,25 @@ x.do({ |x| ("received: "++x).postln});
 )
 
 ::
+
+With GUIs:
+
+
+ code::
+(
+t = QTextField();
+b = Button();
+b.esFromGUI.fold(0, { |state, x| state+1 }).connect(t);
+w = Window(bounds:Rect(200,200,130,50)).layout_( HLayout( b, t ) ).front;
+)
+::
+
+code::
+(
+t = QTextField();
+b = Slider().orientation_(\horizontal);
+b.esFromGUI.collect{ |x| x.linexp(0.0,1.0,300,6000) }.connect(t);
+w = Window(bounds:Rect(200,200,300,50)).layout_( HLayout( b, t ) ).front;
+)
+::
+

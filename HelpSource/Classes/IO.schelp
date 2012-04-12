@@ -1,5 +1,5 @@
 title::IO
-summary: Monadic composition of side-effects
+summary:: Monadic composition of side-effects
 categories::FP
 
 Examples::
@@ -7,10 +7,10 @@ code::
 
 IO{ "did a side effect".postln }.unsafePerformIO
 
-IO{ "did a side effect, but will return 32".postln; 32Â }.fmap(_*10).unsafePerformIO
+IO{ "did a side effect, but will return 32".postln; 32Ê}.fmap(_*10).unsafePerformIO
 
 // compose two side-effects
-x = IO{ "did a".postln; Unit }Â >>=| IO{ "did b".postln; Unit }
+x = IO{ "did a".postln; Unit }Ê>>=| IO{ "did b".postln; Unit }
 
 x.unsafePerformIO
 
