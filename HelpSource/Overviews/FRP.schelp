@@ -1,0 +1,529 @@
+TITLE::Functional Reactive Programming
+summary:: Overview of Functional Reactive Programming with the FP quark.
+categories:: FP
+
+Functional Reactive Programming (FRP) deals with with Event Processing, data flow and propagation of change. Events come in while the program is running, most often, at unpredictable times and should be processed and routed to multiple destinations. We can describe these dataflow connections as a network, connecting inputs to outputs. The network itself is functional, i.e., it's formed by chaining functions which do not present any visible state to the user and no not cause side-effects (posting, chainging synths, changing outside variables, etc). 
+
+IMAGE::network-1.png::
+
+The FP quark implementation of FRP is based on link::http://reactive-web.co.cc##reactive-web::, a scala FRP library, which is in turn inspired by other libraries. Under the hood it uses observers, but it automates the removal of the observer from the observers list. 
+
+SECTION:: EventStreams: Time-ordered sequences of discrete events
+
+You can think of EventStreams as Collections of elements tagged with a time value. It is encoded with subclasses of EventStream. You can create a new link::Classes/EventSource:: which can emit a value using the 'fire' method. All the other classes are created using conbinator methods.
+
+IMAGE::eventstream-1.png::
+
+code::
+(
+x = EventSource();
+x.do{ |x| postln("I have received this: "++x) };
+x.fire(1);
+x.fire(5);
+)
+::
+
+list::
+##EventStreams fire events at given times.
+
+##EventStreams can be chained creating a network.
+
+##The start of the network is always an EventSource.
+
+##To react to these events you use the 'do' and 'doDef' method.
+
+##Only the functions f which are passed to 'do' and 'doDef' should cause side-effects. The rest of the network should be purely functional.
+::
+
+If you need to remove the function later, store it in a variable:
+
+code::
+(
+x = EventSource();
+f = { |x| postln("Hello world: "++x) };
+x.do(f);
+x.fire(3)
+)
+
+(
+x.stopDoing(f);
+x.fire(5)
+)
+::
+
+You can assign a key to the function:
+
+code::
+(
+x = EventSource();
+x.doDef(\action1,{ |x| postln("Hello world: "++x) });
+x.fire(3)
+)
+::
+Replace the function at that key:
+code::
+(
+x.doDef(\action1,{ |x| postln("Goodbye world: "++x) });
+x.fire(7)
+)
+::
+Disable the function:
+code::
+(
+x.doDef(\action1);
+x.fire(6)
+)
+::
+
+Section:: Signals - continuous time, step functions
+
+Signals difer from EventStreams in that it's value is know at each moment in time.  Signals are encoded with the FPSignal class hierarchy. In the FP quark signals are always step functions, that is they hold a value constant until the next value arrives.
+
+image::signals.png::
+
+A Val is an FPSignal that cannot be changed
+code::
+x = Val(0.0);
+x.now
+::
+
+A Var is an FPSignal that can be changed
+code::
+x = Var(0.0);
+//current value
+x.now;
+//change value
+x.value_(3.3);
+x.now;
+::
+
+You can act on the changes of a signal:
+code::
+x.do{ |v| postln("something changed: "++v) };
+x.value_(5.3);
+::
+
+You can use the same methods as with EventSource for adding and removing actions: do, stopDoing, doDef.
+
+
+EventStreams and FPSignals are two reciprocal representations. 
+
+You can transform an EventStream into an FPSignal by using 'hold' with an initial value:
+
+code::
+(
+x = EventSource();
+y = x.hold(2.0);
+y.now
+)
+::
+
+And an FPSignal into an EventStream using changes:
+code::
+(
+x = Var(2.0);
+y = x.changes;
+)
+::
+
+SECTION:: Combinators
+
+Complex networks for event processing are created using the combinator methods.
+
+You can think of EventStreams as Collections of elements over time. Therefore the methods of collections will work as you expect.
+
+IMAGE::eventstream-2.png::
+
+SUBSECTION::select
+
+code::eventSource.select(f):: only outputs a value if code::f.(value):: is true.
+
+code::x.select(_<0.04)::
+
+IMAGE::eventstream-3.png::
+
+code::
+[1,2,3,4,5].select(_>3)
+::
+
+code::
+(
+x = EventSource();
+y = x.select(_>3);
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);//will not let through.
+x.fire(4);//will let through.
+)
+::
+
+SUBSECTION::Collect
+
+code::eventSource.collect(f)::  returns a new EventStream, that for every event that this EventStream fires, that one will fire an event that is the result of applying 'f' to this EventStream's event.
+
+
+code::
+x.collect(_*100)
+::
+IMAGE::eventstream-4.png::
+
+code::
+[1,2,3,4,5].collect(_*100)
+::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100);
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);
+x.fire(4);
+)
+::
+
+SUBSECTION::inject
+
+code::eventSource.inject(initialState,f):: This method can be used to keep state or accumulate values. f must receive two variables, the first is the current state and second is the last value received.
+
+code::
+[1,2,3,4,5].inject(0.0,{ |state,v| state + v })
+::
+
+Sum values:
+code::
+(
+x = EventSource();
+y = x.inject(0.0,{ |state,v| state + v });
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);
+x.fire(4);
+x.fire(7);
+x.fire(12);
+)
+::
+
+Add values to array:
+
+code::
+(
+x = EventSource();
+y = x.inject([],{ |state,v| state ++ [v] });
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);
+x.fire(4);
+x.fire(7);
+x.fire(12);
+)
+::
+
+Keep last two values:
+
+code::
+(
+x = EventSource();
+y = x.inject([0.0,0.0],{ |state,v| [state[1],v] });
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);
+x.fire(4);
+x.fire(7);
+x.fire(12);
+)
+::
+
+SUBSECTION:: flatCollect - Dynamic Event Switching
+
+This is the most important method of EventSource for it It allows selecting which events to output depending on the some other EventStream. code:: eventSource.flatCollect(f)::  creates a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
+
+IMAGE::flatCollect.png::
+
+code::
+(
+~selector = EventSource();
+//two sources
+a = EventSource();
+b = EventSource();
+//the result
+w = ~selector.flatCollect{ |v|
+	if(v==0){a}{b}
+};
+w.do(_.postln);
+)
+(
+//will get value from y
+~selector.fire(0);
+a.fire(1);
+b.fire(4);
+)
+(
+//will get value from z
+~selector.fire(1);
+a.fire(1);
+b.fire(4);
+)
+::
+
+It is called flatCollect because it is analogous to using collect on an Array that creates subarrays and then flatten the result:
+
+code::
+[1,2,3].collect(_*[1,2,3]).flatten
+::
+
+In other programming languages it is called flatMap or bind (It is an instance of the famous Monad).
+
+In the same way doing 
+
+code::
+(
+x = EventSource();
+y = EventSource();
+z = EventSource();
+x.collect{ |v|
+	if(v==0){y}{z}
+};
+)
+::
+
+creates an EventStream of EventStreams.  Changing the collect to flatCollect will flatten it down again to a EventStream.
+
+Besides switching you can also combine event sources using a function:
+
+code::
+(
+x = EventSource();
+y = EventSource();
+z = x.flatCollect{ |xvalue|
+	y.collect{ |yvalue| xvalue + yvalue }
+};
+z.do( postln(_) )
+)
+x.fire(1.0)
+y.fire(2.0) //only this one will cause z to fire
+::
+
+SUBSECTION::Combinining EventStreams
+
+There is a nicer syntax for this, using "Applicative Style":
+
+code::
+(
+x = EventSource();
+y = EventSource();
+w = { |a,b| a+b } <%> x <*> y;
+w.do( postln(_) );
+)
+//run each at a time
+x.fire(1);
+y.fire(2);//only this one causes w to fire
+::
+
+This is analogous to 
+
+{ |a,b| a+b } .(1,2)
+
+A function of 3 arguments:
+
+code::
+(
+x = EventSource();
+y = EventSource();
+z = EventSource();
+w = { |x,y,z| x + y + z } <%> x <*> y <*> z; 
+w.do( postln(_) );
+)
+//run each at a time
+x.fire(9.0);
+y.fire(3.0);
+z.fire(1.0); //only this one causes w to fire
+::
+
+This is analogous to 
+code::
+f = { |x,y,z| x + y + z };
+f.(9.0, 3.0, 1.0)
+::
+
+but we are "lifting" f to act on EventStreams instead of Numbers. The nice thing about using <*> is that it is always the same syntax no matter how many arguments the function has.
+
+Applicative style (<*>) uses a link::Classes/TypeClasses##Type Classes:: implementation for SuperCollider, part of the FP quark.
+
+Signals can also be used in this way, with the added benefit that if any of the signals that are arguments of the function change then the result will change:
+
+code::
+(
+x = Var(1.0);
+y = Var(1.0);
+z = Var(1.0);
+//when you add a side-effecting function w it will fire an initial value
+w = { |x,y,z| x + y + z } <%> x <*> y <*> z; w.do( postln(_) );
+)
+//and then it will fire when you change any x, y or z
+x.value_(9.0);
+y.value_(3.0);
+z.value_(24.0);
+::
+
+SECTION:: Creating and destroying networks:
+
+On some FRP libraries, the FRP networks are like synthdefs, once they are constructed they can't be changed (but you can stop a network and start another one), e.g. reactive-banana in Haskell.  In scala's reactive-web 'Weak References' are used for managing objects life time. This means that mostly the user doesn't need to worry about destroying the functional networks. Unfortunately SuperCollider doesn't have weak links, so we have to manage the life cycles manually.
+
+Suppose we have the following network:
+
+IMAGE::remove-1.png::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100).select(_>300);
+y.do{ |v| postln("I got a "++v) };
+)
+::
+
+We can reset the original EventSource which will remove all the branches that start from it. Those branches will be garbage collected.
+
+image::remove-2.png::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100).select(_>300);
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);
+x.fire(4);
+//disconnect
+x.reset;
+//this will not be posted:
+x.fire(1);
+x.fire(4);
+)
+::
+
+If you want to disconnect only some branches you can use emphasis::remove:: :
+
+
+ image::remove-4.png::
+ 
+ code::
+ (
+x = EventSource();
+~y1 = x.collect(_*100).select(_>300);
+~y1.do{ |v| postln("y1 got a "++v) };
+~y2 = x.collect(_*300); //you have to store the first created EventSource after x
+~y3 = ~y2.select(_>600);
+~y3.do{ |v| postln("y3 got a "++v) };
+x.fire(1);
+x.fire(4);
+~y2.remove;
+postln("y2 removed");
+//only y1 will post
+x.fire(4);
+)
+::
+
+We can also disconnect part of the network conditionally on the incoming values:
+
+ image::remove-3.png::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100).takeWhile(_>300);
+y.do{ |v| postln("I got a "++v) };
+x.fire(4);
+x.fire(1);
+// 100 < 300 so y is disconnected.
+//this will not be posted:
+x.fire(5);
+)
+::
+
+SECTION:: Common workflows
+
+Muting an EventStream based on the value of another EventStream:
+
+code::
+(
+a = EventSource();
+~mute = EventSource(); 
+~emitNothing = NothingES();
+~result = ~mute.flatCollect{ |v|
+	if( v == 0.0 ) {
+		a
+	} {
+		~emitsNothing
+	}
+};
+~result.do{ |v| postln("I got this: "++v) };
+)
+(
+~mute.fire(0.0);
+a.fire(3); //event goes through
+)
+(
+~mute.fire(1.0);
+a.fire(8); //event doesn't go through
+)
+::
+
+Choose the output from a group of EventStreams based on a value of a selector EventStream:
+
+code::
+(
+~streams = 4.collect{ EventSource() };
+~selector = EventSource(); 
+~result = ~selector.flatCollect{ |i|
+	~streams[i]
+};
+~result.do{ |v| postln("I got this: "++v) };
+)
+
+~selector.fire(0); 
+~streams[0].fire(1)
+~streams[1].fire(1)
+~streams[2].fire(1)
+~streams[3].fire(1)
+
+~selector.fire(2); 
+~streams[0].fire(1)
+~streams[1].fire(1)
+~streams[2].fire(1)
+~streams[3].fire(1)
+
+::
+
+SECTION:: Interacting with GUIs
+
+You can get an EventSource or FPSignal from a GUI (which responds to action_ ) by doing emphasis::myGUI.esFromGUI:: or emphasis::myGUI.signalFromGUI::. You can connect an EventSource or FPSignal to a gui by doing emphasis::es.connect(gui):: or emphasis::signal.connect(gui)::. Whenever the EventStream or FPSignal fires the the value_ method will be called on the GUI with the value fired.
+
+code::
+(
+~guiKnob = Knob();
+~guiResult = Knob();
+~guiButton = Button().states_([
+	["0", Color.white, Color.black],
+	["1", Color.black, Color.red],
+]);
+~knob = ~guiKnob.esFromGUI;
+~button = ~guiButton.esFromGUI; 
+w = Window(bounds:Rect(200,200,200,100)).layout_(
+	 VLayout(
+		HLayout( ~guiKnob, ~guiResult  ),
+		HLayout( ~guiButton ),
+	)
+).front;
+//start synth
+~synth = { |freq=400| LFNoise0.ar(freq)*0.2 }.play;
+
+//an event source that emits nothing
+~emitsNothing = NothingES();
+
+~result = ~button.flatCollect{ |v|
+		if( v == 1.0 ) {
+		~knob
+	} {
+		~emitsNothing
+	}
+};
+//associate each result EventSource with a synth
+~result.do{ |v| ~synth.set(\freq, v.linlin(0.0,1.0,100.0,4000.0) ) };
+~result.connect(~guiResult);
+)
+::

@@ -64,4 +64,3 @@ do 	y <- Data.Map.lookup "hello" x
  	return (z*100)
 
 ::
-::

@@ -2,7 +2,7 @@ class:: TypeClasses
 summary:: Haskell style type classes
 categories:: FP
 
-This is an implementation of Haskell style type classes for supercollider. The library relies heavilly on the concepts of
+This is an experimental implementation of Haskell style type classes for supercollider. The library relies heavilly on the concepts of
 Monad, Functor, Applicativer Functor, etc, so it is advised to read up on these topics.
 A good source is link::http://learnyouahaskell.com/::.
 The library is also very much inspired by ScalaZ: https://github.com/scalaz/scalaz
@@ -38,6 +38,7 @@ Some(3).fmap(_+1)
 
 ::
 
+
 section::Applicative Functor
 
 requires implementation of:
@@ -58,7 +59,8 @@ code::
 
 ::
 
-Let's say you have 3 objects of the Option class, a,b and c, and you want to run a function f of 3 arguments only if all of the three objets are a Some, then you can do::
+
+Let's say you have 3 objects of the Option class, a,b and c, and you want to run a function f of 3 arguments only if all of the three objets are a Some, then you can do:
 
 code::
 f <%> a <*> b <*> c
