@@ -11,6 +11,21 @@ For more info see:
 
 http://www.reactive-web.co.cc/core/Signal
 
+subsection:: Type Classes
+
+
+Traverse: Because Array is an instance of the Traverse type class you can transform arrays of FPSignals into an FPSignal that emits arrays using 'sequence':
+
+code::
+(
+x = Var(1.0);
+y = Var(2.0);
+z = Var(3.0);
+z = [x,y,z].sequence;
+z.now;
+)
+::
+
 CLASSMETHODS::
 
 PRIVATE:: buildFlatCollect

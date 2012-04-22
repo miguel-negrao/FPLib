@@ -237,7 +237,7 @@ x.fire(33);
 )
 ::
 
-slowdown: Only fire if new value arrived at least t seconds after last value. Does not remember values in between.
+## slowdown: Only fire if new value arrived at least t seconds after last value. Does not remember values in between.
 
 code::
 (
@@ -253,7 +253,7 @@ x.fire(22)
 )
 ::
 
-toggle: Iterate amongs n states, i.e. with 4 states goes 0, 1, 2, 3, 0, 1, 2, etc...
+## toggle: Iterate amongs n states, i.e. with 4 states goes 0, 1, 2, 3, 0, 1, 2, etc...
 
 code::
 (
@@ -267,6 +267,26 @@ x.fire(0);
 x.fire(0);
 x.fire(0);
 x.fire(0);
+)
+::
+
+## behaviour: Run a function of time in between each event received.
+
+This mimics "Behaviours" as formulated in classical FRP.
+A function depending on time and on an initial value is run using a timer (i.e. discretizing time) in between every event received.
+
+code::
+(
+var delta = 0.05;
+var g = 0.1;
+
+f = { |x0,t| (x0 - (g*t.squared)).max(0) };
+
+w !? _.close;
+~guiKnob = Knob();
+
+w = Window(bounds:Rect(200,200,200,100)).layout_( HLayout( ~guiKnob ) ).front;
+~guiKnob.esFromGUI.behaviour(f, delta).changed.connect( ~guiKnob );
 )
 ::
 

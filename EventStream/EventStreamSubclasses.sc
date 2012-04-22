@@ -46,13 +46,17 @@ EventPlayerES : EventSource {
 	     }        	
        }
     }
+
+	remove {
+		routine.stop;
+	}
 }
 
 TimerES : EventSource {
     var <routine;
 
     *new{ |delta, maxTime|
-        ^super.new.init(delta, maxTime)
+        ^super.new.init(delta, maxTime ? inf)
     }
 
     init { |delta, maxTime|
@@ -69,6 +73,10 @@ TimerES : EventSource {
             }
         }
 
+    }
+
+    remove {
+    	routine.stop;
     }
 }
 
