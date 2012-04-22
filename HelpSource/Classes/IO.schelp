@@ -7,10 +7,10 @@ code::
 
 IO{ "did a side effect".postln }.unsafePerformIO
 
-IO{ "did a side effect, but will return 32".postln; 32Ê}.fmap(_*10).unsafePerformIO
+IO{ "did a side effect, but will return 32".postln; 32 }.fmap(_*10).unsafePerformIO
 
 // compose two side-effects
-x = IO{ "did a".postln; Unit }Ê>>=| IO{ "did b".postln; Unit }
+x = IO{ "did a".postln; Unit } >>=| IO{ "did b".postln; Unit }
 
 x.unsafePerformIO
 
@@ -19,5 +19,4 @@ x.unsafePerformIO
 // note, with IO the 3 actions are done sequentially, not in parallel. For that one would use a promise
 x = { |x,y,z| x + y + y } <%> IO{"accessing file1".postln;1} <*> IO{"accessing file2".postln;2} <*> IO{"accessing file3".postln;3};
 x.unsafePerformIO
-::
 ::
