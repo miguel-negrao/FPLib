@@ -14,12 +14,12 @@
         };
 	}
 	
-	//Functor
+//Functor
 	fmap { |f|
 		^this.getTypeInstance(this, 'fmap',  { |g| g.value(this, f) })
 	}
 	
-	//Applicative Functor
+//Applicative Functor
 	<*> {  |fa|
 		^this.getTypeInstance(this, 'apply',  { |g| g.value(this, fa) })
 	}
@@ -28,7 +28,7 @@
 		^AplicativeBuilder(this,b) 	
 	}
 			
-	//Monad	
+//Monad
 	>>= { |f|
 		^this.getTypeInstance(this, 'bind', { |g| g.value(this, f) });
 	}
@@ -39,11 +39,39 @@
 		^this.getTypeInstance(class, 'pure', { |g| g.value(this) });
 	}
 	
-	//Monoid
+//Monoid
 	|+| { |a| }
 
-	//Traverse
+//Traverse
 	traverse { |f| ^this.getTypeInstance(this, 'traverse', { |g| g.value(f, this) }) }
 	sequence { ^this.traverse({|x| x}) }
+	//F[_] : Applicative, A, B,  f: A => F[Unit], g: A => B
+	collectTraverse { |f, g|
+		^this.traverse({ |a|
+			var fa = f.(a);
+			{ g.(a) }.pure(fa.getClass) <*> f.(a)
+		})
+	}
 
+	//F[_] : Applicative, A, B, C, f: F[B], g: A => B => C
+	disperse { |f,g|
+		^this.traverse({ |a| g.curried.(a).pure(f.getClass) <*> f })
+	}
+
+//Utils
+	*getClass {
+		^if( this.class.isMetaClass ) {
+			this
+		} {
+			this.class
+		};
+	}
+
+	getClass {
+		^if( this.class.isMetaClass ) {
+			this
+		} {
+			this.class
+		};
+	}
 }

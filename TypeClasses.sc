@@ -34,13 +34,7 @@ TypeClasses {
 				'pure' : { |a| [a] },
 				'traverse' : { |f,as|
 					var fclass;
-					var fa = f.(as[0]);
-					fclass = if( fa.class.isMetaClass ) {
-						fa
-					} {
-						fa.class
-					};
-					as.reverse.inject( [].pure(fclass), { |ys,v|
+					as.reverse.inject( [].pure(f.(as[0]).getClass), { |ys,v|
 						f.(v).fmap({ |z| { |zs| [z]++zs } }) <*> ys
 					});
 				}
