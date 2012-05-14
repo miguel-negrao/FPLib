@@ -240,5 +240,13 @@ Var : Val {
     	changes.fire(v);
     	^Unit
     }
+    
+	//GUI additions
+	
+	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
+		var spec = [minval, maxval, warp, step, default].asSpec;
+		var slider = Slider(nil, Rect(100,100,50,100) ).front;
+		slider.action_{ |sl| this.value_(spec.map(sl.value)) }		
+	}
 
 }

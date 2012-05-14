@@ -188,11 +188,6 @@ EventSource : EventStream {
         ^Unit
     }
 
-    //connect to an object that responds to .value_
-    connect{ |object|
-    	this.do{ |v| defer{ object.value_(v) } };
-    	^Unit
-    }
 
 	//returns the corresponding signal
     hold { |initialValue|
@@ -200,7 +195,21 @@ EventSource : EventStream {
     }
 
     remove { ^Unit }
+    
+    //connect to an object that responds to .value_
+    connect{ |object|
+    	this.do{ |v| defer{ object.value_(v) } };
+    	^Unit
+    }
 
+	//GUI additions
+	
+	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
+		var spec = [minval, maxval, warp, step, default].asSpec;
+		var slider = Slider(nil, Rect(100,100,50,100) );
+		slider.action_{ |sl| this.fire(spec.map(sl.value)) }		
+	}
+	
     bus { |server, initVal = 0.0|
 		server = server ?? {Server.default};
 		if( server.serverRunning ) {
