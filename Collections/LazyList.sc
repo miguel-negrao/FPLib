@@ -1,3 +1,89 @@
+/*
+    FP Quark
+    Copyright 2012 Miguel Negrão.
+
+    FP Quark: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FP Quark is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FP Quark.  If not, see <http://www.gnu.org/licenses/>.
+
+    It is possible to add more type instances by adding the functions
+    directly to the dict from the initClass function of the class that
+    one wants to make an instance of some type class.
+
+Memory tests:
+
+~consume = { |xs| 
+	0.01.wait;
+	"ping".postln;
+	~consume.( xs.tail );
+};
+
+None of these tests should cause huge increases in memory
+
+fork{ 
+	~consume.( LazyList.iterate(0,{ 10000.collect{ Rect(1,1,1,1) } }) ) 
+};
+
+fork{ 
+	~consume.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } }.zip(0.iterate{ 10000.collect{ Rect(2,2,2,2) } }) ) 
+};
+
+(
+~consume2 = { |xs| 
+	0.1.wait;
+	"ping".postln;
+	~consume2.( xs.drop(10) );
+};
+fork{ 
+	~consume2.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } } ) 
+};
+)
+
+//this is blowing up
+(
+~consume = { |xs| 
+	0.1.wait;
+	"ping".postln;
+	~consume.( xs.tail );
+};
+fork{ 
+	~consume.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } }.zip(0.iterate{ 10000.collect{ Rect(2,2,2,2) } }).value ) 
+};
+)
+
+LazyListCons.class.findMedthod(\zip)
+
+(
+f = { |a,b|
+	if( (a.isEmpty) || (b.isEmpty) ) {
+		LazyListEmpty
+	} {
+		LazyListCons( Tuple2(a.head, b.head), { f.(a.tail, b.tail) } )
+	}
+};
+
+~consume = { |xs| 
+	0.1.wait;
+	"ping".postln;
+	~consume.( xs.tail );
+};
+fork{ 
+	~consume.( f.(0.iterate{ 10000.collect{ Rect(1,1,1,1) } }, 0.iterate{ 10000.collect{ Rect(2,2,2,2) } }) ) 
+};
+
+
+)
+*/
+
 LazyList {
 
 	isEmpty {  }
@@ -26,7 +112,7 @@ LazyList {
 		var g = { |a,f| LazyListCons(a, { g.(f.(a), f) }) };
 		^g.(a,f)
 	}
-	
+
 	*replicate { |n,a|
 		^LazyList.repeat(a).take(n)
 	}
@@ -89,11 +175,25 @@ LazyListCons : LazyList {
 	}
 
 	zip { |that|
-	    ^if(that.isEmpty) {
-	    	LazyListEmpty
-	    } {
-			LazyListCons( Tuple2(this.head, that.head), { this.tail.value.zip(that.tail.value) } )
-		}
+		var f = { |a,b|
+			if( (a.isEmpty) || (b.isEmpty) ) {
+				LazyListEmpty
+			} {
+				LazyListCons( Tuple2(a.head, b.head), { f.(a.tail, b.tail) } )
+			}
+		};
+		^f.(this, that)
+	}
+	
+	*zip { |a, that|
+		var f = { |a,b|
+			if( (a.isEmpty) || (b.isEmpty) ) {
+				LazyListEmpty
+			} {
+				LazyListCons( Tuple2(a.head, b.head), { f.(a.tail, b.tail) } )
+			}
+		};
+		^f.(a, that)
 	}
 
 	collect { |f|
@@ -154,6 +254,22 @@ LazyListEmpty : LazyList {
 
 }
 
+Zippp {
+
+	*new { |a, that|
+		var f = { |a,b|
+			if( (a.isEmpty) || (b.isEmpty) ) {
+				LazyListEmpty
+			} {
+				LazyListCons( Tuple2(a.head, b.head), { f.(a.tail, b.tail) } )
+			}
+		};
+		^f.(a, that)
+	}
+
+	
+}
+
 + Object {
 
 	%%{ |that| ^LazyListCons(this, that) }
@@ -193,3 +309,4 @@ LazyListEmpty : LazyList {
 	}
 
 }
+

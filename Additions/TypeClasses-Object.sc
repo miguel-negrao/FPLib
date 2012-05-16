@@ -23,10 +23,15 @@
 	<*> {  |fa|
 		^this.getTypeInstance(this, 'apply',  { |g| g.value(this, fa) })
 	}
-	<%> { |a| ^a.fmap(this.curried) }
-	|*|{ |b|
-		^AplicativeBuilder(this,b) 	
+	
+	<* { |fb|
+		^{|x| {|y| x } } <%> this <*> fb
 	}
+	
+	*> { |fb|
+		^{ |x| {|y| y } } <%> this <*> fb
+	}
+	<%> { |a| ^a.fmap(this.curried) }
 			
 //Monad
 	>>= { |f|
@@ -40,7 +45,8 @@
 	}
 	
 //Monoid
-	|+| { |a| }
+	|+| { |b| ^this.getTypeInstance(this, 'append', { |g| g.value(this,b) }) }
+	*zero { |...args| ^this.getTypeInstance(this, 'zero', { |g| g.value(*args) }) } //args can be used for hints about the type of the zero
 
 //Traverse
 	traverse { |f| ^this.getTypeInstance(this, 'traverse', { |g| g.value(f, this) }) }
@@ -59,6 +65,9 @@
 	}
 
 //Utils
+
+	constf { ^{ |x| this } }
+	
 	*getClass {
 		^if( this.class.isMetaClass ) {
 			this

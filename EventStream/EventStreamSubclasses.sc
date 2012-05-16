@@ -20,9 +20,13 @@
 
 */
 
+
 EventPlayerES : EventSource {
     var <routine;
-
+	/*
+		arrays is [[time,value],...]
+	
+	*/
     *new{ |array, loop = true|
         ^super.new.init(array, loop)
     }

@@ -396,3 +396,33 @@ MergedES : EventSource {
         parent2.addListener( thunk );
     }
 }
+
+ApplySignalES : EventSource {
+	var <f, <x, <fval, <xval, <flistener, <xlistener;
+    *new { |f, x, initf, initx|
+        ^super.new.init(f, x, initf, initx)
+    }
+
+    init { |farg, xarg, initf, initx|
+		f = farg;
+		x = xarg;
+		fval = initf;
+		xval = initx;
+        flistener = { |newf|
+			fval = newf;
+			this.fire( fval.( xval ) )
+		};
+		xlistener = { |newx|
+			xval = newx;
+			this.fire( fval.( xval ) )
+		};
+        f.addListener( flistener );
+        x.addListener( xlistener );
+    }
+    
+    remove {
+		f.removeListener( flistener );
+		x.removeListener( xlistener );
+	}
+		
+}

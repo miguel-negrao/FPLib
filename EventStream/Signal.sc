@@ -38,7 +38,8 @@ FPSignal {
 			(
 				'fmap': { |fa,f| fa.collect(f) },
 				'bind' : { |fa,f| fa.flatCollect(f) },
-				'pure' : { |a| Var(a) }
+				'pure' : { |a| Var(a) },
+				'apply' : { |f,fa| f.apply(fa) }
 			)
     	);
 	}
@@ -85,6 +86,24 @@ FPSignal {
 	collect { |f|
         ^CollectedFPSignal(this,f)
     }
+    
+    apply { |fasignal|
+		var fnow = this.now;
+		var fasignalnow = fasignal.now;		
+		/*var initial = Tuple2( fnow, fasignal);
+		var left = this.changes.collect{ |x| Tuple2( Some(x), None ) };
+		var right = fasignal.changes.collect{ |x| Tuple2( None , Some(x) ) };
+		^(left | right).inject(initial, { |lastPair,x|
+			var at1 = x.at1;
+			var at2 = x.at2;
+			if( at1.isDefined ) {
+				Tuple2(at1.get, lastPair.at2)
+			} {
+				Tuple2(lastPair.at1, at2.get)
+			}
+		}).collect{ |tp| tp.at1.(tp.at2) }.hold(fnow.(fasignalnow))*/
+		^ApplySignalES(this.changes, fasignal.changes, fnow, fasignal.now).hold( fnow.(fasignalnow) )
+    }
 
     flatCollect { |f, initialState|
         ^FlatCollectedFPSignal( this, f, initialState)
@@ -94,10 +113,26 @@ FPSignal {
     	^FoldedFPSignal( this, init, f)
     }
 
+	takeWhile { |f|
+        ^TakeWhileFPSignal(this,f)
+    }
+
     bus { |server|
     	^this.changes.bus( server, this.now )
     }
-
+    
+    //make it faster
+    <*> {  |fa|
+		^this.apply(fa)
+	}
+	
+	fmap { |f|
+		^this.collect(f)
+	}
+	
+	>>= { |f|
+		^this.flatCollect(f)
+	}
 }
 
 SignalChangeES : EventSource {
@@ -136,7 +171,8 @@ ChildFPSignal : FPSignal {
     }
     
     remove {
-		parent.changes.removeListener( listenerFunc )
+		parent.changes.removeListener( listenerFunc );
+		^Unit
     }
 
 }
@@ -159,21 +195,28 @@ CollectedFPSignal : ChildFPSignal {
 
 FlatCollectedFPSignal : ChildFPSignal {
 
-    *new { |parent, f|
-        ^super.new.init(parent, f)
+    *new { |parent, f, initialSignal|
+        ^super.new.init(parent, f, initialSignal)
     }
 
-    init { |parent, f|
+    init { |parent, f, initialSignalArg|
     	var initSignal, initialState;
         var thunk = { |x|
         	//("thunk was called with event "++x).postln;
             now = x;
             changes.fire( x );
         };
-        FPSignal.buildFlatCollect = Some(None);
-        initSignal = f.(parent.now);
-        initialState = Tuple2(FPSignal.buildFlatCollect.get,initSignal);
-        FPSignal.buildFlatCollect = None;
+        if(initialSignalArg.isNil) {
+			//get first signal from the switcher signal
+			FPSignal.buildFlatCollect = Some(None);
+			initSignal = f.(parent.now);
+			initialState = Tuple2(FPSignal.buildFlatCollect.get,initSignal);
+			FPSignal.buildFlatCollect = None;
+		} {
+			//or use the provided first signal
+			initSignal = initialSignalArg;
+			initialState = Tuple2(None,initSignal);
+		};
         initSignal.changes !? _.addListener(thunk);
         this.initChildFPSignal(parent, { |event, tuple|
              var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
@@ -216,6 +259,28 @@ FoldedFPSignal : ChildFPSignal {
             changes.fire( next );
             next
         }, initfold, { |x| x })
+    }
+}
+
+TakeWhileFPSignal : ChildFPSignal {
+
+    *new { |parent, f|
+		var pnow = parent.now;
+		^if( f.(pnow) ) {
+			super.new.init(parent, f)
+		} {
+			Val(pnow)
+		}
+    }
+
+    init { |parent, f|
+        this.initChildFPSignal(parent, { |event|
+             if( f.(event) ) {
+                changes.fire( event )
+            } {
+                this.remove;
+            }
+        }, Unit, { parent.now })
     }
 }
 

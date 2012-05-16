@@ -1,7 +1,41 @@
+/*
+    FP Quark
+    Copyright 2012 Miguel Negrão.
+
+    FP Quark: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FP Quark is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FP Quark.  If not, see <http://www.gnu.org/licenses/>.
+
+    It is possible to add more type instances by adding the functions
+    directly to the dict from the initClass function of the class that
+    one wants to make an instance of some type class.
+*/
+
 //Immutable Tuples
 
 Tuple2{
 	var <at1, <at2;
+	
+	*initClass{
+		Class.initClassTree(TypeClasses);
+		//type instances declarations:
+		TypeClasses.addInstance(this,
+			(
+				'append': { |a,b| Tuple2( a.at1 |+| b.at1, a.at2 |+| b.at2 ) },
+				'zero': { |class1, class2| Tuple2( class1.zero, class2.zero) }
+			)
+		);
+	}
+
 
 	*new { |at1, at2|
 		^super.newCopyArgs(at1, at2)
@@ -10,6 +44,8 @@ Tuple2{
 	collect { |f|
 		^Tuple2( f.(at1), f.(at2) )
 	}
+	
+	fmap { |f| ^this.collect(f) }
 	
 	== { |tuple|
 		^(this.at1 == tuple.at1) && (this.at2 == tuple.at2)
@@ -22,6 +58,18 @@ Tuple2{
 
 Tuple3{
 	var <at1, <at2, <at3;
+	
+	*initClass{
+		Class.initClassTree(TypeClasses);
+		//type instances declarations:
+		TypeClasses.addInstance(this,
+			(
+				'append': { |a,b| Tuple3( a.at1 |+| b.at1, a.at2 |+| b.at2, a.at3 |+| b.at3 ) },
+				'zero': { |class1, class2| Tuple2( class1.zero, class2.zero) }
+			)
+		);
+	}
+
 
 	*new { |at1, at2, at3|
 		^super.newCopyArgs(at1, at2, at3)
@@ -30,6 +78,8 @@ Tuple3{
 	collect { |f|
 		^Tuple3( f.(at1), f.(at2), f.(at3) )
 	}
+	
+	fmap { |f| ^this.collect(f) }
 
 	== { |tuple|
 		^(this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3)

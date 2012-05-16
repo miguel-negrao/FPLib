@@ -271,9 +271,21 @@ z.value_(1.0);
 )
 ::
 
+The applicative functor type class also provides two useful functions  code::a <* b:: and code::a *> b::. The first will ignore the result of b the second will ignore the result of a. This is useful when you want some signal to cause the value of some other signal to be outputed. In the following example the timer causes the the value of f <%> x to be emited by the resulting signal each time t emits a new time: 
+
+code::
+(
+x = Var(2.0);
+f = _+1;
+t = TimerES(1.0).hold(0.0);
+z = f <%> x <* t;
+z.do(postln(_))
+)
+::
+
 With GUIs:
 
-Notice that text field automatically has the correct start value.
+Notice that text field automatically has the correct start value. Initialization of the GUIs (or anything else) is automatic when using signals.
 
 code::
 (

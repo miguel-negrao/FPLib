@@ -37,8 +37,9 @@ TypeClasses {
 					as.reverse.inject( [].pure(f.(as[0]).getClass), { |ys,v|
 						f.(v).fmap({ |z| { |zs| [z]++zs } }) <*> ys
 					});
-				}
-
+				},
+				'append' : { |a,b| a++b },
+				'zero' : { [] }
 			);
 		);
 
