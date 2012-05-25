@@ -95,6 +95,8 @@ LazyList {
 	take { |n| }
 
 	drop { |n| }
+	
+	foldl { |start, f| }
 
 	asArray { }
 	
@@ -173,6 +175,11 @@ LazyListCons : LazyList {
 	prToArray { |array|
 		^this.tail.value.prToArray( array.add(this.head) )
 	}
+	
+	//not checked for memory safety
+	foldl { |start,f|
+		^this.tail.foldl( f.(start, this.head), f)
+	}
 
 	zip { |that|
 		var f = { |a,b|
@@ -219,6 +226,16 @@ LazyListCons : LazyList {
 		}
 	}
 	
+	|+| { |that|
+		^this.append(that)
+	}
+	
+	zero { ^LazyListEmpty }
+	
+	add { |that|
+		^this.append( LazyListCons(that,LazyListEmpty) );	
+	}
+	
 	printOn { arg stream;
 		var array = this.take(21).asArray;		
 		if( array.size == 21) {
@@ -250,6 +267,17 @@ LazyListEmpty : LazyList {
 	*select { }
 	*append { |that|
 		^that
+	}
+	|+| { |that|
+		^this.append(that)
+	}	
+	zero { ^LazyListEmpty }
+	*add { |that|
+		^LazyListCons(that, LazyListEmpty)
+	}
+	
+	*foldl { |start,f|
+		^start
 	}
 
 }
@@ -297,7 +325,7 @@ Zippp {
 + Stream {
 
 	asLazyList {
-		^LazyListCons( this.next, { this.asLazyList })
+		^LazyListCons( this.next, { this.asLazyList } )
 	}
 
 }

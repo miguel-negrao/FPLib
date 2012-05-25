@@ -33,7 +33,7 @@ Writer {
 			(
 				'fmap': { |fa,f| fa.collect(f) },
 				'bind': { |fa,f| fa.flatCollect(f) },
-				'pure': { |a| Writer(a,[]) }
+				'pure': { |a,class| Writer(a, class !? _.zero ?? {[]}) }
 			)
 		);
 	}
@@ -41,6 +41,8 @@ Writer {
 	*new { |a,w| ^super.newCopyArgs(a,w) }
 	
 	runWriter { ^Tuple2(a,w) }
+	
+	execWriter { ^this.runWriter.at2 }
 
 	collect { |f| ^Writer( f.(a), w ) }
 	
@@ -57,10 +59,13 @@ Writer {
 		^Writer(a, w |+| w2)
 	}	
 	
+	*tell { |w|
+		^Writer( Unit, w)
+	}		
+	
 	printOn { arg stream;
 		stream << this.class.name << "( " << a << ", " << w << " )";
-	}
-	
-	
+	}	
 		
 }
+

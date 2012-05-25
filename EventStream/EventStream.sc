@@ -201,6 +201,22 @@ EventSource : EventStream {
     	this.do{ |v| defer{ object.value_(v) } };
     	^Unit
     }
+    
+    connectIO{ |object|
+    	^this.collect{ |v| IO{ defer{ object.value_(v) } } };
+    }
+    
+    connectEN{ |object|
+    	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
+    }
+    
+    reactimate{ //this stream should returns IOs
+		^Writer( Unit, Tuple2([],[this]) )
+	}
+	
+	asENInput {
+		^Writer(this, Tuple2([],[]) )
+	}
 
 	//GUI additions
 	

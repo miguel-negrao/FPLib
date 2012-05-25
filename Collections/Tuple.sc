@@ -92,6 +92,17 @@ Tuple3{
 
 Tuple4{
 	var <at1, <at2, <at3, <at4;
+	
+	*initClass{
+		Class.initClassTree(TypeClasses);
+		//type instances declarations:
+		TypeClasses.addInstance(this,
+			(
+				'append': { |a,b| Tuple4( a.at1 |+| b.at1, a.at2 |+| b.at2, a.at3 |+| b.at3, a.at4 |+| b.at4 ) },
+				'zero': { |class1, class2, class3, class4| Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
+			)
+		);
+	}
 
 	*new { |at1, at2, at3, a4|
 		^super.newCopyArgs(at1, at2, at3, a4)

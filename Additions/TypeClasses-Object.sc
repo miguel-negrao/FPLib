@@ -38,6 +38,7 @@
 		^this.getTypeInstance(this, 'bind', { |g| g.value(this, f) });
 	}
 	>>=| { |b| ^this >>= { b } }
+	//>> { |b| ^this >>= { b } }
 	//forever { ^this >>=| this.forever }
 
 	pure { |class|

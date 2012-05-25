@@ -121,6 +121,20 @@ FPSignal {
     	^this.changes.bus( server, this.now )
     }
     
+    //EventNetwork related
+    connectEN{ |object|
+    	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
+    }
+    
+    reactimate{ //this stream should returns IOs
+		^Writer( Unit, Tuple2([],[this.changes]) )
+	}
+	
+	asENInput {
+		^Writer(this, Tuple2([],[]) )
+	}
+    
+    
     //make it faster
     <*> {  |fa|
 		^this.apply(fa)

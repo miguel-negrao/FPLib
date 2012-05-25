@@ -31,7 +31,55 @@ IO{
 			)
 		);
 	}
+	
+	*activate {
+		//like ghci, calls unsafePerformIO on any IO returned
+		thisProcess.interpreter.codeDump = { |str, val, func|
+			//[str, val, func].postcs;
+			val.tryPerform(\unsafePerformIO)
+		};
+	}	
+	
+	*deactivate {
+		thisProcess.interpreter.codeDump = nil;
+	}	
+
 
 	unsafePerformIO{ ^func.value }
 	value{ ^func.value }
 }
+
++ Object {
+	
+	putStrLn { ^IO{ postln(this) } }
+
+}
+
++ QWindow {
+	frontIO {
+		^IO{ this.front }
+	}
+	
+	closeIO {
+		^IO{ this.close }
+	}
+	
+	setPropIO { |...args| //selector, args
+		^IO{ this.performMsg(args) }
+	}
+}
+
++ QView {
+	frontIO {
+		^IO{ this.front }
+	}
+	
+	closeIO {
+		^IO{ this.close }
+	}
+	
+	setPropIO { |...args| //selector, args
+		^IO{ this.performList(*args) }
+	}
+}
+

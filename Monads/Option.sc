@@ -44,6 +44,10 @@ Some : Option {
   
   *new{ |val| ^super.newCopyArgs(val) }
   
+  match{ |fsome, fnone|
+	^fsome.(value)
+  }
+  
   isEmpty{ ^false }
   
   get{ ^value }
@@ -76,6 +80,10 @@ Some : Option {
 }
 
 None : Option {
+
+  *match{ |fsome, fnone|
+	^fnone.()
+  }
   *isEmpty{ ^true }
   
   *get{ Error("None.get").throw }

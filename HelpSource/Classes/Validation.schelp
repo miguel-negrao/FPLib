@@ -1,0 +1,14 @@
+title::Validation
+summary:: Applicative error handling
+categories::FP
+
+Examples::
+code::
+
+{ |x,y| x+y } <%> "oops".fail <*> 3.success
+{ |x,y| x+y } <%> 2.success <*> 3.success
+{ |x,y| x+y } <%> "oops".fail <*> "arghh".fail
+{ |x,y| x+y } <%> ["oops"].fail <*> ["arghh"].fail
+{ |x,y| x+y } <%> "oops".failLL <*> "arghh".failLL
+
+::
