@@ -18,9 +18,10 @@
     It is possible to add more type instances by adding the functions
     directly to the dict from the initClass function of the class that
     one wants to make an instance of some type class.
+    
+    Writer Monad
 */
 
-//Writer Monad
 Writer {
 	var <a, <w; // ( A, W )
 	//a is the main value
