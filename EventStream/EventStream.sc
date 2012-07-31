@@ -129,6 +129,11 @@ EventSource : EventStream {
     collect { |f|
         ^CollectedES(this,f)
     }
+    
+    //for speed 
+    fmap { |f|
+		^this.collect(f)
+	}
 
     select { |f|
         ^SelectedES(this, f)
@@ -141,6 +146,11 @@ EventSource : EventStream {
     flatCollect { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
+    
+    //for speed 
+    >>= { |f| 
+		^this.flatCollect(f)
+	}
 
     | { |otherES|
         ^MergedES( this, otherES )
@@ -187,6 +197,10 @@ EventSource : EventStream {
         if(EventStream.debug) { postln("-> "++this++" : "++event)};
         ^Unit
     }
+    
+    fireIO { |event|
+		^IO{ this.fire(event) }		
+    }
 
 
 	//returns the corresponding signal
@@ -211,11 +225,11 @@ EventSource : EventStream {
     }
     
     reactimate{ //this stream should returns IOs
-		^Writer( Unit, Tuple2([],[this]) )
+		^Writer( Unit, Tuple3([],[this],[]) )
 	}
 	
 	asENInput {
-		^Writer(this, Tuple2([],[]) )
+		^Writer(this, Tuple3([],[],[]) )
 	}
 
 	//GUI additions

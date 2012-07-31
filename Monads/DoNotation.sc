@@ -173,11 +173,25 @@ DoNotation {
 			}
 		}
 		
+	}
+	
+	*processIOAssignment { |string|
+		var do = string.find("Do(");
+		var arrow = string.find("<-");
+		// if there are not Do's consider that the arrow is for IO
+		// if there are Do's the arrow must be before all Do's
+		if( (do.isNil && arrow.notNil) || ( do.notNil && arrow.notNil and: { arrow < do } ) ) {
+			IO.environmentVarForResult = string[..(arrow-1)].stripWhiteSpace;
+			^this.processString(string[(arrow+2)..]);			
+		} {
+			IO.environmentVarForResult = nil;
+			^this.processString(string)
+		}	
 	}		
 
 	*activate {		
 		thisProcess.interpreter.preProcessor = { |code| 
-			this.processString(code).match({|string|
+			this.processIOAssignment(code).match({|string|
 				string			
 			}, { |e| Error("Do Notation parsing error -> "++e).throw });
 		};

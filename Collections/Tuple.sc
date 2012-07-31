@@ -30,7 +30,7 @@ Tuple2{
 		//type instances declarations:
 		TypeClasses.addInstance(this,
 			(
-				'append': { |a,b| Tuple2( a.at1 |+| b.at1, a.at2 |+| b.at2 ) },
+				'append': { |a,b| "append a:% b:%".format(a,b).postln; Tuple2( a.at1 |+| b.at1, a.at2 |+| b.at2 ) },
 				'zero': { |class1, class2| Tuple2( class1.zero, class2.zero) }
 			)
 		);

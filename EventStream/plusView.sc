@@ -23,9 +23,13 @@
     mouseMoveES {
    		var es = EventSource();
 		this.mouseMoveAction_({ |view, x, y, modifiers|
-			es.fire( view, x, y, modifiers);
+			es.fire( Tuple4(view, x, y, modifiers) );
 		});
 		^es
+	}
+	
+	 mouseMoveEN {
+   		^this.mouseMoveES.asENInput
 	}
 
     mouseOverES { }

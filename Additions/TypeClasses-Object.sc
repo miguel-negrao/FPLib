@@ -2,6 +2,7 @@
 + Object {	
 	
 	getTypeInstance { |object, function, f|
+        
 		//If 'class' is not an instance of the typeclass check if one of the parent
 		//classes is.
 		var class = if( object.class.isMetaClass ) {
@@ -9,6 +10,7 @@
 		} {
 			object.class
 		};
+		//"function: % this: % object: %".format(function, this,object).postln;
         ^TypeClasses.getSuperclassImplementation(class, function) !? f ?? {
         	Error(class.asString ++" does not implement the typeclass function: "++function).throw
         };
@@ -31,7 +33,15 @@
 	*> { |fb|
 		^{ |x| {|y| y } } <%> this <*> fb
 	}
+	//note: only functions with explicit variables can be curried
+	// functions of type { |...args| cannot be curried }
 	<%> { |a| ^a.fmap(this.curried) }
+	//args is an Array or LazyList
+	<%%> { |args|
+        var largs = args.asLazy;
+        ^largs.tail.foldl(largs.head.fmap(this.curried), { |a,b| a <*> b })
+    }
+	
 			
 //Monad
 	>>= { |f|
@@ -50,8 +60,8 @@
 	*zero { |...args| ^this.getTypeInstance(this, 'zero', { |g| g.value(*args) }) } //args can be used for hints about the type of the zero
 
 //Traverse
-	traverse { |f| ^this.getTypeInstance(this, 'traverse', { |g| g.value(f, this) }) }
-	sequence { ^this.traverse({|x| x}) }
+	traverse { |f, type| ^this.getTypeInstance(this, 'traverse', { |g| g.value(f, this, type) }) }
+	sequence { |type| ^this.traverse({|x| x}, type) }
 	//F[_] : Applicative, A, B,  f: A => F[Unit], g: A => B
 	collectTraverse { |f, g|
 		^this.traverse({ |a|

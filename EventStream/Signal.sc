@@ -127,11 +127,12 @@ FPSignal {
     }
     
     reactimate{ //this stream should returns IOs
-		^Writer( Unit, Tuple2([],[this.changes]) )
+        "FPSignal reactimate".postln;
+		^Writer( Unit, Tuple3([],[this.changes],[this.now]) )
 	}
 	
 	asENInput {
-		^Writer(this, Tuple2([],[]) )
+		^Writer(this, Tuple3([],[],[]) )
 	}
     
     
@@ -324,8 +325,19 @@ Var : Val {
 	
 	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
 		var spec = [minval, maxval, warp, step, default].asSpec;
-		var slider = Slider(nil, Rect(100,100,50,100) ).front;
-		slider.action_{ |sl| this.value_(spec.map(sl.value)) }		
+		var slider = Slider(nil, Rect(100,100,50,100) );
+		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
+		slider.value_(spec.unmap(this.value));
+		slider.front;
+		^slider		
+	}
+	
+	getSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
+		var spec = [minval, maxval, warp, step, default].asSpec;
+		var slider = Slider(nil, Rect(100,100,50,100) );
+		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
+		slider.value_(spec.unmap(this.value));
+		^slider		
 	}
 
 }

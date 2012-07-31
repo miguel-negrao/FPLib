@@ -129,3 +129,30 @@ None : Option {
 		^None
 	}
 }
+
++ Array {
+
+	atOption { |i|
+		var x = this.at(i);
+		^if(x.isNil) { None } { Some(x) }		
+	}
+	
+	catOptions {
+        ^this.inject([], { |state, ma|
+            ma.match({ |a|
+                state ++ [a]
+            },{
+                state            
+            })           
+        })	
+	}
+	
+	catOptions2 {
+        ^if( this.isEmpty ) {
+            None
+        } {        
+            Some( this.catOptions )
+        }	
+	}
+
+}

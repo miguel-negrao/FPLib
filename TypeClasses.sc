@@ -32,11 +32,21 @@ TypeClasses {
 				'fmap': { |fa,f| fa.collect(f) },
 				'bind' : { |fa,f| fa.collect(f).flatten },
 				'pure' : { |a| [a] },
-				'traverse' : { |f,as|
+				'traverse' : { |f,as, type|
 					var fclass;
-					if(as.size == 0) {
-						as
-					} {
+					if(as.size == 0) {                        
+                        if( type.notNil ) {
+                            if(type.class.isMetaClass) {
+                                //it's a class
+                                as.pure( type )
+                            } {
+                                //it's a function that constructs the pure instance
+                                type.(as)
+                            }
+                        } {
+                            as
+                        }
+					} {                        
 						as.reverse.inject( [].pure(f.(as[0]).getClass), { |ys,v|
 							f.(v).fmap({ |z| { |zs| [z]++zs } }) <*> ys
 						});

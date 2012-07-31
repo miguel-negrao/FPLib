@@ -100,6 +100,8 @@ LazyList {
 
 	asArray { }
 	
+	asLazy{ }
+	
 	cycle {
 		var f = { this.append({ { f.() } }) };
 		^f.()		
@@ -204,7 +206,11 @@ LazyListCons : LazyList {
 	}
 
 	collect { |f|
-		^LazyListCons( f.(this.head), { this.tail.value.collect(f) })
+		^LazyListCons( f.(this.head), { this.tail.collect(f) })
+	}
+	
+	do{ |f|
+        f.(this.head); this.tail.do(f); ^Unit
 	}
 
 	select { |pred|
@@ -268,6 +274,7 @@ LazyListEmpty : LazyList {
 	*append { |that|
 		^that
 	}
+	*do{ ^Unit }
 	|+| { |that|
 		^this.append(that)
 	}	

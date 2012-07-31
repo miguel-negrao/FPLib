@@ -17,6 +17,8 @@
 */
 
 IO{
+	classvar <>environmentVarForResult;
+	
 	var <func;
 	*new{ |func| ^super.newCopyArgs(func) }
 
@@ -36,7 +38,22 @@ IO{
 		//like ghci, calls unsafePerformIO on any IO returned
 		thisProcess.interpreter.codeDump = { |str, val, func|
 			//[str, val, func].postcs;
-			val.tryPerform(\unsafePerformIO)
+			//"environmentVarForResult is %".format(environmentVarForResult).postln;
+			if( val.isKindOf(IO) ) {
+				if( environmentVarForResult.notNil ) {
+					if( environmentVarForResult[0] == $~ ) {
+						topEnvironment.put(environmentVarForResult[1..].asSymbol, val.unsafePerformIO )
+					} {
+						if( environmentVarForResult.size == 1 ) {
+							thisProcess.interpreter.perform( (environmentVarForResult++"_").asSymbol, val.unsafePerformIO)
+						} {
+							val.unsafePerformIO
+						}
+					}			
+				} {
+					val.unsafePerformIO
+				}
+			}
 		};
 	}	
 	

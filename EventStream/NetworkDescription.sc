@@ -2,7 +2,8 @@ EventNetwork {
 	var <actuate, //IO[Unit]
 	<pause; //IO[Unit]
 	
-	//networkDescription : Writer( Unit, Tuple2([IO(IO())], [EventStream[IO[Unit]]]) )
+	//networkDescription : Writer( Unit, Tuple3([IO(IO())], [EventStream[IO[Unit]]], [IO] ) )
+	//                                     eventHandlers         reactimates        IOLater
 	*new{ |networkDescription|
 		var tuple = networkDescription.w;
 		
@@ -11,6 +12,7 @@ EventNetwork {
 		var f  = { |v| v.unsafePerformIO };
 		var doFinalIO = IO{ finalIOES.do(f) };
 		var stopDoingFinalIO = IO{ finalIOES.stopDoing(f) };
+		var iosLater = tuple.at3.sequence;
 		
 		//inputs
 		var unregister;
@@ -19,8 +21,10 @@ EventNetwork {
 		  } };
 		var unregisterIO = IO{ unregister } >>= { |x|  x !? _.sequence; };
 			
-		^super.newCopyArgs( doFinalIO >>=| registerIO, stopDoingFinalIO >>=| unregisterIO ) 	
+		^super.newCopyArgs( doFinalIO >>=| registerIO >>=| iosLater, stopDoingFinalIO >>=| unregisterIO ) 	
 	}
+	
+	*returnDesc { |a| ^Writer( a, Tuple3([],[],[]) ) }  
 	
 	actuateNow { actuate.unsafePerformIO; ^Unit }
 	pauseNow { pause.unsafePerformIO; ^Unit }
@@ -41,8 +45,64 @@ EventNetwork {
 				}
 			};
 			IO{ routine.stop } };
-		^Writer( es, Tuple2([addHandler],[]) )	
+		^Writer( es, Tuple3([addHandler],[],[]) )	
 	}
+	
+	*makeES { |addAction, removeAction|
+        var addHandler;
+		var es = EventSource();
+		addHandler = IO{ 
+			var action = { |sl| es.fire( sl.value ) };
+			addAction.(action);
+			IO{ removeAction.(action) }
+		};
+		^Writer( es, Tuple3([addHandler],[],[]) )
+    }
+
+}
+
+ENTimer {
+    var <delta, <maxTime;
+    var <>action; //Option[Function]
+    var <task, t = 0;
+    
+    *new { |delta = 0.1, maxTime = inf|
+        ^super.newCopyArgs(delta, maxTime).init;        
+    }
+    
+    init {
+        task = Task({
+            inf.do{
+                delta.wait;
+                if( t >= maxTime) {
+                    task.stop;
+                };
+                t = t + delta;
+                action.do{ |f| f.(t) };
+            }
+        });
+    }
+    
+    start {        
+        ^IO{ t = 0; task.start }
+	}
+	
+	stop {
+        ^IO{ task.stop };
+	}
+	
+	pause {
+        ^IO{ task.pause }
+	
+	}
+	
+	resume {
+        ^IO{ task.resume }
+	}
+	actions {
+        ^[ { |action| this.action_( Some(action) ) }, { this.action_(None) } ]
+	}
+    
 }
 
 FRPGUICode {
@@ -50,12 +110,12 @@ FRPGUICode {
 	*asENInput { |gui|
 		var addHandler;
 		var es = EventSource();
-		addHandler = IO{ 
-			var action = { |sl| es.fire( sl.value ) };
+		var action = { |sl| es.fire( sl.value ) };
+		addHandler = IO{ 			
 			gui.addAction(action);
 			IO{ gui.removeAction(action) 
 		} };
-		^Writer( es, Tuple2([addHandler],[]) )	
+		^Writer( es, Tuple3([addHandler],[],[IO{ action.value(gui) }]) )	
 	}
 
 }
@@ -82,7 +142,7 @@ FRPGUICode {
 		var func = { |v| es.fire(v) };
 		var internalES = this.eventSource;
 		var addHandler = IO{ internalES.do(func); IO{ internalES.stopDoing(func) } };
-		^Writer( es, Tuple2([addHandler],[]) )		
+		^Writer( es, Tuple3([addHandler],[],[]) )		
 	}
 
 }
