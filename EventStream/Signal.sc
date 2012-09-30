@@ -86,10 +86,10 @@ FPSignal {
 	collect { |f|
         ^CollectedFPSignal(this,f)
     }
-    
+
     apply { |fasignal|
 		var fnow = this.now;
-		var fasignalnow = fasignal.now;		
+		var fasignalnow = fasignal.now;
 		/*var initial = Tuple2( fnow, fasignal);
 		var left = this.changes.collect{ |x| Tuple2( Some(x), None ) };
 		var right = fasignal.changes.collect{ |x| Tuple2( None , Some(x) ) };
@@ -120,31 +120,34 @@ FPSignal {
     bus { |server|
     	^this.changes.bus( server, this.now )
     }
-    
+
     //EventNetwork related
     connectEN{ |object|
     	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
     }
-    
+
     reactimate{ //this stream should returns IOs
         "FPSignal reactimate".postln;
 		^Writer( Unit, Tuple3([],[this.changes],[this.now]) )
 	}
-	
+
 	asENInput {
 		^Writer(this, Tuple3([],[],[]) )
 	}
-    
-    
+
+    debug { |string|
+        ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
+    }
+
     //make it faster
     <*> {  |fa|
 		^this.apply(fa)
 	}
-	
+
 	fmap { |f|
 		^this.collect(f)
 	}
-	
+
 	>>= { |f|
 		^this.flatCollect(f)
 	}
@@ -222,7 +225,7 @@ ChildFPSignal : FPSignal {
         };
         parent.changes.addListener( listenerFunc )
     }
-    
+
     remove {
 		parent.changes.removeListener( listenerFunc );
 		^Unit
@@ -293,7 +296,7 @@ FlatCollectedFPSignal : ChildFPSignal {
              nextSigEnd.changes !? _.addListener( thunk );
              //store the new chain
              Tuple2(nextSigStart, nextSigEnd);
-             
+
         }, initialState, { |x| x.at2.now })
     }
 }
@@ -358,24 +361,24 @@ Var : Val {
     	changes.fire(v);
     	^Unit
     }
-    
+
 	//GUI additions
-	
+
 	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
 		var spec = [minval, maxval, warp, step, default].asSpec;
 		var slider = Slider(nil, Rect(100,100,50,100) );
 		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
 		slider.value_(spec.unmap(this.value));
 		slider.front;
-		^slider		
+		^slider
 	}
-	
+
 	getSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
 		var spec = [minval, maxval, warp, step, default].asSpec;
 		var slider = Slider(nil, Rect(100,100,50,100) );
 		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
 		slider.value_(spec.unmap(this.value));
-		^slider		
+		^slider
 	}
 
 }
