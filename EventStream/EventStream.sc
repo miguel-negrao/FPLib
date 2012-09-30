@@ -118,7 +118,7 @@ EventSource : EventStream {
     addListener { |f| listeners = listeners ++ [f]; ^Unit }
 
     removeListener { |f| listeners.remove(f); ^Unit }
-    
+
     reset { listeners = []; ^Unit }
 
 	//private
@@ -129,8 +129,8 @@ EventSource : EventStream {
     collect { |f|
         ^CollectedES(this,f)
     }
-    
-    //for speed 
+
+    //for speed
     fmap { |f|
 		^this.collect(f)
 	}
@@ -146,9 +146,9 @@ EventSource : EventStream {
     flatCollect { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
-    
-    //for speed 
-    >>= { |f| 
+
+    //for speed
+    >>= { |f|
 		^this.flatCollect(f)
 	}
 
@@ -197,9 +197,9 @@ EventSource : EventStream {
         if(EventStream.debug) { postln("-> "++this++" : "++event)};
         ^Unit
     }
-    
+
     fireIO { |event|
-		^IO{ this.fire(event) }		
+		^IO{ this.fire(event) }
     }
 
 
@@ -209,37 +209,37 @@ EventSource : EventStream {
     }
 
     remove { ^Unit }
-    
+
     //connect to an object that responds to .value_
     connect{ |object|
     	this.do{ |v| defer{ object.value_(v) } };
     	^Unit
     }
-    
+
     connectIO{ |object|
     	^this.collect{ |v| IO{ defer{ object.value_(v) } } };
     }
-    
+
     connectEN{ |object|
     	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
     }
-    
+
     reactimate{ //this stream should returns IOs
 		^Writer( Unit, Tuple3([],[this],[]) )
 	}
-	
+
 	asENInput {
 		^Writer(this, Tuple3([],[],[]) )
 	}
 
 	//GUI additions
-	
+
 	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
 		var spec = [minval, maxval, warp, step, default].asSpec;
 		var slider = Slider(nil, Rect(100,100,50,100) );
-		slider.action_{ |sl| this.fire(spec.map(sl.value)) }		
+		slider.action_{ |sl| this.fire(spec.map(sl.value)) }
 	}
-	
+
     bus { |server, initVal = 0.0|
 		server = server ?? {Server.default};
 		if( server.serverRunning ) {
@@ -252,6 +252,44 @@ EventSource : EventStream {
 			^None
 		}
 	}
+
+    //utilities
+    storePrevious {
+        ^this.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) })
+    }
+
+    storePreviousWithT {
+        ^this.inject( Tuple2( Tuple2(0.0,0.0), Tuple2(0.0,0.0) ),
+            { |state,x| Tuple2( state.at2, Tuple2( Process.elapsedTime, x ) ) })
+    }
+
+    storeWithT {
+        ^this.collect( Tuple2(Process.elapsedTime,_) )
+    }
+
+    linlin { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.linlin(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    linexp { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.linexp(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    explin { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.explin(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    expexp { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.expexp(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    lincurve { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
+        ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
+    }
+
+    curvelin { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
+        ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
+    }
 
 }
 
@@ -449,10 +487,10 @@ ApplySignalES : EventSource {
         f.addListener( flistener );
         x.addListener( xlistener );
     }
-    
+
     remove {
 		f.removeListener( flistener );
 		x.removeListener( xlistener );
 	}
-		
+
 }

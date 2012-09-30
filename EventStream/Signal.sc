@@ -148,6 +148,44 @@ FPSignal {
 	>>= { |f|
 		^this.flatCollect(f)
 	}
+
+    //utilities
+    storePrevious {
+        ^this.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) })
+    }
+
+    storePreviousWithT {
+        ^this.inject( Tuple2( Tuple2(0.0,0.0), Tuple2(0.0,0.0) ),
+            { |state,x| Tuple2( state.at2, Tuple2( Process.elapsedTime, x ) ) })
+    }
+
+    storeWithT {
+        ^this.collect( Tuple2(Process.elapsedTime,_) )
+    }
+
+    linlin { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.linlin(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    linexp { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.linexp(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    explin { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.explin(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    expexp { |inMin, inMax, outMin, outMax, clip=\minmax|
+        ^this.collect( _.expexp(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    lincurve { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
+        ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
+    }
+
+    curvelin { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
+        ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
+    }
 }
 
 SignalChangeES : EventSource {
