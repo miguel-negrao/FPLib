@@ -117,6 +117,7 @@ FPSignal {
         ^TakeWhileFPSignal(this,f)
     }
 
+    //audio
     bus { |server|
     	^this.changes.bus( server, this.now )
     }
@@ -164,6 +165,18 @@ FPSignal {
 
     storeWithT {
         ^this.collect( Tuple2(Process.elapsedTime,_) )
+    }
+
+    changed {
+        ^this.storePrevious.collect{ |tup| tup.at1 != tup.at2 }
+    }
+
+    integral { |tsig|
+        var delta = tsig.storePrevious.collect{ |tup| tup.at2-tup.at1 };
+        var inc = (_*_) <%> delta <*> this;
+        ^inc.inject(0, {|state, inc|
+            state = state + inc
+        })
     }
 
     linlin { |inMin, inMax, outMin, outMax, clip=\minmax|

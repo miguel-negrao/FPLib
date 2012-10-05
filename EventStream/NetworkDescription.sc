@@ -25,6 +25,7 @@ EventNetwork {
 	}
 
 	*returnDesc { |a| ^Writer( a, Tuple3([],[],[]) ) }
+    *returnUnit { ^this.returnDesc(Unit) }
 
 	actuateNow { actuate.unsafePerformIO; ^Unit }
 	pauseNow { pause.unsafePerformIO; ^Unit }
@@ -111,10 +112,10 @@ ENTimer {
 
 FRPGUICode {
 
-	*asENInput { |gui|
+	*makeENInput { |gui|
 		var addHandler;
-		var es = EventSource();
-		var action = { |sl| es.fire( sl.value ) };
+		var es = FPSignal(gui.value);
+		var action = { |sl| es.value_( sl.value ) };
 		addHandler = IO{
 			gui.addAction(action);
 			IO{ gui.removeAction(action)
@@ -127,14 +128,14 @@ FRPGUICode {
 + QView {
 
 	asENInput {
-		^FRPGUICode.asENInput(this)
+		^FRPGUICode.makeENInput(this)
 	}
 }
 
 + SCView {
 
 	asENInput {
-		^FRPGUICode.asENInput(this)
+		^FRPGUICode.makeENInput(this)
 	}
 
 }
