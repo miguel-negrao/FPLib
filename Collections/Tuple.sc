@@ -24,7 +24,7 @@
 
 Tuple2{
 	var <at1, <at2;
-	
+
 	*initClass{
 		Class.initClassTree(TypeClasses);
 		//type instances declarations:
@@ -44,9 +44,9 @@ Tuple2{
 	collect { |f|
 		^Tuple2( f.(at1), f.(at2) )
 	}
-	
+
 	fmap { |f| ^this.collect(f) }
-	
+
 	== { |tuple|
 		^(this.at1 == tuple.at1) && (this.at2 == tuple.at2)
 	}
@@ -54,11 +54,19 @@ Tuple2{
 	printOn { arg stream;
 		stream << "(" << at1 << ", " << at2 << ")"
 	}
+
+    at1_{ |v|
+        ^Tuple2(v,this.at2)
+    }
+
+    at2_{ |v|
+        ^Tuple2(this.at1,v)
+    }
 }
 
 Tuple3{
 	var <at1, <at2, <at3;
-	
+
 	*initClass{
 		Class.initClassTree(TypeClasses);
 		//type instances declarations:
@@ -78,7 +86,7 @@ Tuple3{
 	collect { |f|
 		^Tuple3( f.(at1), f.(at2), f.(at3) )
 	}
-	
+
 	fmap { |f| ^this.collect(f) }
 
 	== { |tuple|
@@ -92,7 +100,7 @@ Tuple3{
 
 Tuple4{
 	var <at1, <at2, <at3, <at4;
-	
+
 	*initClass{
 		Class.initClassTree(TypeClasses);
 		//type instances declarations:

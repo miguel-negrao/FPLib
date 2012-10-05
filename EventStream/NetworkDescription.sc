@@ -114,7 +114,7 @@ FRPGUICode {
 
 	*makeENInput { |gui|
 		var addHandler;
-		var es = FPSignal(gui.value);
+		var es = Var(gui.value);
 		var action = { |sl| es.value_( sl.value ) };
 		addHandler = IO{
 			gui.addAction(action);
