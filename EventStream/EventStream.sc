@@ -130,11 +130,6 @@ EventSource : EventStream {
         ^CollectedES(this,f)
     }
 
-    //for speed
-    fmap { |f|
-		^this.collect(f)
-	}
-
     select { |f|
         ^SelectedES(this, f)
     }
@@ -148,6 +143,10 @@ EventSource : EventStream {
     }
 
     //for speed
+    fmap { |f|
+		^this.collect(f)
+	}
+
     >>= { |f|
 		^this.flatCollect(f)
 	}
@@ -254,6 +253,10 @@ EventSource : EventStream {
 	}
 
     //utilities
+    selectSome {
+        ^this.select(_.isDefined).collect(_.get)
+    }
+
     storePrevious {
         ^this.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) })
     }
