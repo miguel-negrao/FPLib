@@ -1,7 +1,0 @@
-+ Function {
-
-	<|? { |func|
-		^[this,func]
-	}
-
-}

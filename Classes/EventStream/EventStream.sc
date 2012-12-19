@@ -33,16 +33,6 @@ EventStream{
 	classvar <>buildFlatCollect;
 
 	*initClass {
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-
-		TypeClasses.addInstance(EventSource,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'bind' : { |fa,f| fa.flatCollect(f) }
-			);
-		);
-
 		doFuncs = Dictionary.new;
 		buildFlatCollect = [];
 	}
@@ -126,10 +116,6 @@ EventSource : EventStream {
 		^ChildEventSource( initialState ).initChildEventSource(this,f)
 	}
 
-    collect { |f|
-        ^CollectedES(this,f)
-    }
-
     select { |f|
         ^SelectedES(this, f)
     }
@@ -138,7 +124,7 @@ EventSource : EventStream {
         ^FoldedES(this, initial, f);
     }
 
-    flatCollect { |f, initialState|
+    >>= { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
 
@@ -146,15 +132,6 @@ EventSource : EventStream {
     switch { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
-
-    >>= { |f|
-		^FlatCollectedES( this, f)
-	}
-
-    //for speed
-    fmap { |f|
-		^CollectedES(this,f)
-	}
 
     | { |otherES|
         ^MergedES( this, otherES )
@@ -298,6 +275,11 @@ EventSource : EventStream {
     curvelin { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
         ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
     }
+
+//Functor
+    collect { |f|
+		^CollectedES(this,f)
+	}
 
 }
 

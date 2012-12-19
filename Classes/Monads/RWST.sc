@@ -62,6 +62,8 @@ NetworkDesc : RWS {
 }
 
 */
+
+//RWS r w s a = RWS { runRWS :: r -> s -> (a, s, w) }
 RWS {
 
     var <runRWS;
@@ -129,11 +131,37 @@ RWS {
         ^this.new({ |r,s| T(a, s, this.writerMakeZero) })
     }
 
+//Functor
+    collect { |f|
+        ^this.class.new({ |r,s|
+            var x = this.run(r,s);
+            x.at1_( f.( x.at1) )
+        })
+    }
+//Monad
+    >>= { |f|
+        this.class.new({ |r,s|
+            var x1 = this.run(r,s);
+            var x2 = f.(x1.at1).run(r, x1.at2);
+            x2.at3_( x1.at3 |+| x2.at3 )
+        })
+    }
+    bind { |f| ^this >>= f }
+
+    *pure { |a|
+        ^this.new({ |r,s| T(a, s, this.writerMakeZero) })
+    }
+
+
+
+
 }
 
 RWSArr : RWS {
     *writerMakeZero{ ^[] }
 }
+
+
 /*
 A monad transformer of sorts for Reader, Writer, State
 

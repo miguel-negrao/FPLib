@@ -20,28 +20,6 @@
 ST {
   	var <f;
 
-  	*initClass{
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-		TypeClasses.addInstance(this,
-			(
-				'fmap': { |fa,f|
-					ST({ |s|
-						var stuple = fa.f.(s);
-						T( stuple.at1, f.(stuple.at2) )
-					})
-				},
-				'bind': { |fa,f|
-					ST({ |s|
-						var satuple = fa.f.(s);
-						f.(satuple.at2).runState(satuple.at1)
-					})
-                },
-				'pure': { |r| ST({ |s| T(s,r) }) }
-			)
-		);
-	}
-
   	//f: S => (S, A)
   	*new { |f| ^super.newCopyArgs(f) }
 
@@ -57,5 +35,27 @@ ST {
 
 	//g:S => S
 	withState { |g| ^ST(f <> g )  }
+
+//Functor
+    collect { |f|
+        ^ST({ |s|
+            var stuple = this.f.(s);
+            T( stuple.at1, f.(stuple.at2) )
+        })
+    }
+
+//Monad
+    >>= { |f|
+        ^ST({ |s|
+            var satuple = this.f.(s);
+            f.(satuple.at2).runState(satuple.at1)
+        })
+    }
+    bind { |f| ^this >>= f }
+
+    *pure { |r|
+        ^ST({ |s| T(s,r) })
+    }
+
 
 }

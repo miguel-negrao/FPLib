@@ -18,7 +18,7 @@
     It is possible to add more type instances by adding the functions
     directly to the dict from the initClass function of the class that
     one wants to make an instance of some type class.
-    
+
     Writer Monad
 */
 
@@ -26,47 +26,37 @@ Writer {
 	var <a, <w; // ( A, W )
 	//a is the main value
 	//w is the annotation monoid
-	
-	*initClass{
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-		TypeClasses.addInstance(this,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'bind': { |fa,f| fa.flatCollect(f) },
-				'pure': { |a,class| Writer(a, class !? _.zero ?? {[]}) }
-			)
-		);
-	}
-	
+
 	*new { |a,w| ^super.newCopyArgs(a,w) }
-	
+
 	runWriter { ^Tuple2(a,w) }
-	
+
 	execWriter { ^this.runWriter.at2 }
 
+	tell { |w2|
+		^Writer(a, w |+| w2)
+	}
+
+	*tell { |w|
+		^Writer( Unit, w)
+	}
+
+	printOn { arg stream;
+		stream << this.class.name << "( " << a << ", " << w << " )";
+	}
+
+//Functor
 	collect { |f| ^Writer( f.(a), w ) }
-	
-	fmap { |f| ^this.collect(f) }
-	
-	flatCollect { |f| 
+
+//Monad
+	>>= { |f|
 		var k = f.(a);
 		^Writer( k.a, w |+| k.w )
 	}
-	
-	>>= { |f| ^this.flatCollect(f) }
-	
-	tell { |w2|
-		^Writer(a, w |+| w2)
-	}	
-	
-	*tell { |w|
-		^Writer( Unit, w)
-	}		
-	
-	printOn { arg stream;
-		stream << this.class.name << "( " << a << ", " << w << " )";
-	}	
-		
+
+    *pure { |a,class|
+        Writer(a, class !? _.zero ?? {[]}) //where to store the zero ?
+    }
+
 }
 

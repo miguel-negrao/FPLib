@@ -30,20 +30,6 @@ FPSignal {
 
 	classvar <>buildFlatCollect;
 
-	*initClass {
-		Class.initClassTree(TypeClasses);
-    	//type instances declarations:
-
-    	TypeClasses.addInstance(FPSignal,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'bind' : { |fa,f| fa.flatCollect(f) }, //dynamic event switching
-				'pure' : { |a| Var(a) },
-				'apply' : { |f,fa| f.apply(fa) }
-			)
-    	);
-	}
-
 	*new {
 	   ^super.new.initFPSignal
 	}
@@ -83,36 +69,6 @@ FPSignal {
 		^this.changes.remove;
 	}
 
-	collect { |f|
-        ^CollectedFPSignal(this,f)
-    }
-
-    //apply signals to signals
-    <*> { |fasignal|
-		var fnow = this.now;
-		var fasignalnow = fasignal.now;
-		^ApplySignalES(this.changes, fasignal.changes, fnow, fasignalnow).hold( fnow.(fasignalnow) )
-    }
-
-    //apply time-varying function to EventSources
-    <@> { |es|
-        //apply a signal with a function to every incoming event
-        ^es.collect{ |x| this.now.value(x) }
-    }
-
-     <@ { |es|
-        //apply a signal with a function to every incoming event
-        ^es.collect{ |x| this.now }
-    }
-
-    flatCollect { |f, initialState|
-        ^FlatCollectedFPSignal( this, f, initialState)
-    }
-
-    switch { |f, initialState|
-        ^this.flatCollect( f, initialState)
-    }
-
     inject { |init, f|
     	^FoldedFPSignal( this, init, f)
     }
@@ -142,14 +98,6 @@ FPSignal {
     debug { |string|
         ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
     }
-
-	fmap { |f|
-		^this.collect(f)
-	}
-
-	>>= { |f|
-		^this.flatCollect(f)
-	}
 
     //utilities
     storePrevious {
@@ -248,6 +196,47 @@ FPSignal {
 
     - { |signal|
         ^(_-_) <%> this <*> signal
+    }
+
+
+//Functor
+	collect { |f|
+        ^CollectedFPSignal(this,f)
+    }
+
+//Aplicative Functor
+    //apply signals to signals
+    <*> { |fasignal|
+		var fnow = this.now;
+		var fasignalnow = fasignal.now;
+		^ApplySignalES(this.changes, fasignal.changes, fnow, fasignalnow).hold( fnow.(fasignalnow) )
+    }
+
+    //apply time-varying function to EventSources
+    <@> { |es|
+        //apply a signal with a function to every incoming event
+        ^es.collect{ |x| this.now.value(x) }
+    }
+
+     <@ { |es|
+        //apply a signal with a function to every incoming event
+        ^es.collect{ |x| this.now }
+    }
+//Monad
+    >>= { |f|
+        ^FlatCollectedFPSignal( this, f, nil)
+    }
+
+    bind { |f, initialState|
+        ^FlatCollectedFPSignal( this, f, initialState)
+    }
+
+    switch { |f, initialState|
+        ^FlatCollectedFPSignal( this, f, initialState)
+    }
+
+    *pure { |a|
+        ^Var(a)
     }
 }
 

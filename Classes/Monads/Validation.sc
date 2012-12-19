@@ -25,56 +25,11 @@
 // Validation[E, X]
 Validation {
 
-	*initClass{
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-		TypeClasses.addInstance(this,
-			(
-				'fmap': { |fa,f| fa.collect(f) },
-				'apply': { |f,fa| fa.apply(f) },
-				'bind': { |fa,f| fa.flatCollect(f) },
-				'pure': { |a| Success(a) }
-			)
-		);
-	}
-
-	match { |fsuccess, ffail|
-
-	}
+	match { |fsuccess, ffail| }
 
 	isSuccess { }
 
 	isFailure { ^this.isSuccess.not }
-
-	collect { |f|
-		^this.match( Success(_) <> f, { |e| Failure(e) } )
-	}
-
-	fmap { |f|
-		^this.collect(f)
-	}
-
-	flatCollect { |f|
-		^this.match(f.(_), { |e| Failure(e) })
-	}
-
-	>>= { |f|
-		^this.flatCollect(f)
-	}
-
-	apply { |f|
-		^this.match({ |x|
-			f.match({ |k|
-				Success( k.(x) )
-			}, { |e2| Failure(e2) })
-		}, { |e1|
-			f.match({ |x|
-				Failure(e1)
-			},{ |e2|
-				Failure( e1 |+| e2 )
-			})
-		})
-	}
 
     //they are equal if they are both Success and a==b or if they are both Failure
     == { |that|
@@ -91,6 +46,33 @@ Validation {
             }
         )
     }
+
+//Functor
+	collect { |f|
+		^this.match( Success(_) <> f, { |e| Failure(e) } )
+	}
+
+//Monad
+	>>= { |f|
+		^this.match(f.(_), { |e| Failure(e) })
+	}
+    pure { |a| ^Success(a) }
+
+//Applicative
+	<*> { |f|
+		^this.match({ |x|
+			f.match({ |k|
+				Success( k.(x) )
+			}, { |e2| Failure(e2) })
+		}, { |e1|
+			f.match({ |x|
+				Failure(e1)
+			},{ |e2|
+				Failure( e1 |+| e2 )
+			})
+		})
+	}
+
 }
 
 Failure : Validation {
