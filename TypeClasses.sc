@@ -34,7 +34,7 @@ TypeClasses {
 				'pure' : { |a| [a] },
 				'traverse' : { |f,as, type|
 					var fclass;
-					if(as.size == 0) {                        
+                    if(as.size == 0) {
                         if( type.notNil ) {
                             if(type.class.isMetaClass) {
                                 //it's a class
@@ -46,8 +46,19 @@ TypeClasses {
                         } {
                             as
                         }
-					} {                        
-						as.reverse.inject( [].pure(f.(as[0]).getClass), { |ys,v|
+					} {
+                        var pureAppliedToEmptyArray = if( type.notNil ) {
+                            if(type.class.isMetaClass) {
+                                //it's a class
+                                [].pure( type )
+                            } {
+                                //it's a function that constructs the pure instance
+                                type.([])
+                            }
+                        }{
+                            [].pure( f.(as[0]).getClass )
+                        };
+                        as.reverse.inject( pureAppliedToEmptyArray , { |ys,v|
 							f.(v).fmap({ |z| { |zs| [z]++zs } }) <*> ys
 						});
 					}
@@ -56,14 +67,14 @@ TypeClasses {
 				'zero' : { [] }
 			);
 		);
-		
+
 		dict.put(SimpleNumber,
 			(
 				'append' : { |a,b| a + b },
 				'zero' : { 0 }
 			);
 		);
-		
+
 		dict.put(String,
 			(
 				'append' : { |a,b| a ++ b },
@@ -71,7 +82,6 @@ TypeClasses {
 			);
 		);
 
-        //Use startup for the meta rules ?
 		metaRules = [
 			//all Monads are Applicative functors
 			[ ['bind'], ('apply' : { |f,fa| f >>= { |g| fa.fmap( g ) } } ) ]

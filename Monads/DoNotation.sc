@@ -2,9 +2,8 @@
 
 Todo:
 
-implement validations
 Allow function definitions inside, i.e. have ; if they are inside { }
-Distinguish Do( from "Do("
+Distinguish Do( from "Do(" .e. ignore stuff inside strings when looking for Do blocks
 
 Rules:
 
@@ -32,14 +31,55 @@ DoNotation {
     }
 
     *processDoBlock { |string|
-        //Validation[Int]
-        var semicolons = this.optionToValidation(string.findAll(";").asOption, "Do block has no ;s !");
-        //Option[Int]
+
+        //ignore ; inside functions
+        //[ Int ]
+        var semicolonsTemp = string.as(Array).asLazy.zip( LazyList.iterate(0, _+1) ).foldl(
+            //list of ;    { counter  ( counter
+            Tuple2(LazyListEmpty, 0, 0),
+            { |st,x|
+                switch (x.at1)
+                { ${ }{
+                    st.at2_(st.at2 + 1)
+                }
+                { $} } {
+                    st.at2_(st.at2 - 1)
+                }
+                { $; } {
+                    if(st.at2 > 0 ) {
+                        st
+                    } {
+                        st.at1_( x.at2 %% st.at1 )
+                    }
+                } { st }
+            }
+        ).at1.asArray.sort;
+        //Validation[ [Int] ]
+        var semicolons = if(semicolonsTemp.size ==0) {
+            "Do block has no ;s !".fail
+        } {
+           semicolonsTemp.success
+        };
+
+        //Option[ [Int] ]
         var lets = string.findAll("let ").asOption;
         //Option[Int]
         var arrow = string.find("<-").asOption;
-        //Option[Int]
-        var return = string.find("return").asOption;
+        //Validation[ Option[Int] ]
+        /*
+        TODO:
+        still have to check that return is the first token to appear after the last semicolon, otherwise it might be a method called return...
+
+        */
+        var return = semicolons.fmap{ |semicolons|
+            string.find("return").asOption >>= { |i|
+                if(i>semicolons.last) {
+                    Some(i)
+                } {
+                    None
+                }
+            }
+        };
         //Option[Int]
         var guard = string.find("|||").asOption;
 
@@ -154,12 +194,16 @@ DoNotation {
 
                     //ends with return ?
                     return.collect{ |return|
-                        var endExpression = string[(return+6)..].stripWhiteSpace;
-                        strings[0]++".fmap{ "++strings[1]++varExpression++endExpression++" }"
-                    }.getOrElse({
-                        var endExpression = string[(posLastSemicolonToBeProcessed+1)..];
-                        strings[0]++" >>= { "++strings[1]++varExpression++endExpression++" }"
-                    }.value).success
+                        //inside validation
+                        return.collect{ |return|
+                            //inside Maybe
+                            var endExpression = string[(return+6)..].stripWhiteSpace;
+                            strings[0]++".fmap{ "++strings[1]++varExpression++endExpression++" }"
+                        }.getOrElse({
+                            var endExpression = string[(posLastSemicolonToBeProcessed+1)..];
+                            strings[0]++" >>= { "++strings[1]++varExpression++endExpression++" }"
+                        }.value)
+                    }
                 };
 
                 if(this.debug) {

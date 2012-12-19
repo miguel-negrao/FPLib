@@ -10,12 +10,15 @@ DoNotationUnitTest : UnitTest {
         this.assertEquals( DoNotation.processDoBlock("x <- a; let v = x + 1; return b"), "a.fmap{ |x| var v = x + 1;b }".success );
         this.assertEquals( DoNotation.processDoBlock("x <- a ||| g1; return x "), "a.select { |x|  g1 }.fmap{ |x| x }".success );
         this.assertEquals( DoNotation.processDoBlock("x <- a; let b = c; y <- d; let e = f; g"),"a >>= { |x| var b = c;d >>= { |y| var e = f; g } }".success);
+        //returns should be checked after last semicolon
+        this.assertEquals( DoNotation.processDoBlock("a.return; b"),"a.return >>= {  b }".success);
 
 
         //stuff that should fail
         this.assertEquals( DoNotation.processDoBlock("a").class, Failure, "Do(a) should fail");
         this.assertEquals( DoNotation.processDoBlock("a;").class, Failure, "Do(a;) should fail");
         this.assertEquals( DoNotation.processDoBlock("a; <- <-").class, Failure, "Do(a; <- <-) should fail");
+        this.assertEquals( DoNotation.processDoBlock("a <- expr1; b <- expr2").class, Failure, "Do(a <- expr1; b <- expr2) should fail");
     }
 
     test_removeComments {

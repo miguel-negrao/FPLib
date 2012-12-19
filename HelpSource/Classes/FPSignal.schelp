@@ -66,7 +66,7 @@ method::doDef
 
 Run f every time a new event arrives and save the function using the name given
 
-argument::name 
+argument::name
 A key
 argument::f
 The function to call
@@ -154,6 +154,34 @@ x.value_(4);
 x.value_(7)
 )
 ::
+
+method::<@>
+Apply a time varying function to incoming events
+
+code::
+(
+var x = Var({ |x| x + 25 });
+var z = EventSource();
+var r = x <@> z;
+r.do( _.postln );
+z.fire(2);
+x.value_({ |x| x + 28 });
+z.fire(2);
+)
+
+
+(
+var x = Var(1.0);
+var y = Var(2.0);
+var z = EventSource();
+var r = { |x,y,z| x + y +z } <%> x <*> y <@> z;
+r.do( _.postln );
+x.value_(20);
+y.value_(40);
+z.fire(2)
+)
+::
+
 
 SUBSECTION::Disconnect from network
 
@@ -271,7 +299,7 @@ z.value_(1.0);
 )
 ::
 
-The applicative functor type class also provides two useful functions  code::a <* b:: and code::a *> b::. The first will ignore the result of b the second will ignore the result of a. This is useful when you want some signal to cause the value of some other signal to be outputed. In the following example the timer causes the the value of f <%> x to be emited by the resulting signal each time t emits a new time: 
+The applicative functor type class also provides two useful functions  code::a <* b:: and code::a *> b::. The first will ignore the result of b the second will ignore the result of a. This is useful when you want some signal to cause the value of some other signal to be outputed. In the following example the timer causes the the value of f <%> x to be emited by the resulting signal each time t emits a new time:
 
 code::
 (

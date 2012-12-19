@@ -30,25 +30,6 @@ EventNetwork {
 	actuateNow { actuate.unsafePerformIO; ^Unit }
 	pauseNow { pause.unsafePerformIO; ^Unit }
 
-	*newTimer{ |delta = 0.1, maxTime = inf|
-		var addHandler;
-		var es = EventSource();
-		addHandler = IO{
-			var t = 0;
-			var routine = fork{
-				inf.do{
-					delta.wait;
-					if( t >= maxTime) {
-						routine.stop;
-					};
-					t = t + delta;
-					es.fire(t);
-				}
-			};
-			IO{ routine.stop } };
-		^Writer( es, Tuple3([addHandler],[],[]) )
-	}
-
 	*makeES { |addAction, removeAction|
         var addHandler;
 		var es = EventSource();
@@ -132,19 +113,19 @@ FRPGUICode {
 	}
 }
 
-+ SCView {
+/*+ SCView {
 
 	asENInput {
 		^FRPGUICode.makeENInput(this)
 	}
 
-}
+}*/
 
 + MKtlElement {
 
 	asENInput {
-		var es = EventSource();
-		var func = { |v| es.fire(v) };
+        var es = Var(0.0);
+		var func = { |v| es.value_(v) };
 		var internalES = this.eventSource;
 		var addHandler = IO{ internalES.do(func); IO{ internalES.stopDoing(func) } };
 		^Writer( es, Tuple3([addHandler],[],[]) )

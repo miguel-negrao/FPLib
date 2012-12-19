@@ -22,6 +22,18 @@
 
 //Immutable Tuples
 
+//An easy to type constructor for tupples
+T{
+
+   *new{ |...args|
+        var class = switch(args.size)
+        {2}{Tuple2}
+        {3}{Tuple3}
+        {4}{Tuple4};
+        ^class.new(*args)
+    }
+}
+
 Tuple2{
 	var <at1, <at2;
 
@@ -96,6 +108,18 @@ Tuple3{
 	printOn { arg stream;
 		stream << "(" << at1 << ", " << at2 << ", " << at3 <<")"
 	}
+
+    at1_{ |v|
+        ^Tuple3(v, this.at2, this.at3)
+    }
+
+    at2_{ |v|
+        ^Tuple3(this.at1, v, this.at3)
+    }
+
+    at3_{ |v|
+        ^Tuple3(this.at1, this.at2, v)
+    }
 }
 
 Tuple4{

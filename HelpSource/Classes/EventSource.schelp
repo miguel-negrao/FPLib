@@ -499,6 +499,21 @@ x.fire(4);
 )
 ::
 
+method::apply
+Apply a the funtion contained in the FPSignal to each incoming event
+
+code::
+(
+var e = EventSource();
+var fsig = Var(_+1);
+e.apply(fsig).do(_.postln);
+e.fire(1);
+e.fire(2);
+fsig.value_(_*10);
+e.fire(1);
+e.fire(2);
+)
+
 SUBSECTION::Disconnect from network
 
 method::remove

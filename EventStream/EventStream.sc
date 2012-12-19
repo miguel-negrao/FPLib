@@ -142,13 +142,18 @@ EventSource : EventStream {
         ^FlatCollectedES( this, f, initialState)
     }
 
-    //for speed
-    fmap { |f|
-		^this.collect(f)
-	}
+    //synonims
+    switch { |f, initialState|
+        ^FlatCollectedES( this, f, initialState)
+    }
 
     >>= { |f|
-		^this.flatCollect(f)
+		^FlatCollectedES( this, f)
+	}
+
+    //for speed
+    fmap { |f|
+		^CollectedES(this,f)
 	}
 
     | { |otherES|
@@ -193,7 +198,7 @@ EventSource : EventStream {
 	    //copy is used here because listerFuncs might mutate the listeners variable
 	    //change this to a FingerTree in the future.
         listeners.copy.do( _.value(event) );
-        if(EventStream.debug) { postln("-> "++this++" : "++event)};
+        if(EventStream.debug) { postln("-> "++this++" : "++this.hash++" : "++event)};
         ^Unit
     }
 

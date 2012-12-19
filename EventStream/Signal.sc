@@ -37,7 +37,7 @@ FPSignal {
     	TypeClasses.addInstance(FPSignal,
 			(
 				'fmap': { |fa,f| fa.collect(f) },
-				'bind' : { |fa,f| fa.flatCollect(f) },
+				'bind' : { |fa,f| fa.flatCollect(f) }, //dynamic event switching
 				'pure' : { |a| Var(a) },
 				'apply' : { |f,fa| f.apply(fa) }
 			)
@@ -87,26 +87,30 @@ FPSignal {
         ^CollectedFPSignal(this,f)
     }
 
-    apply { |fasignal|
+    //apply signals to signals
+    <*> { |fasignal|
 		var fnow = this.now;
 		var fasignalnow = fasignal.now;
-		/*var initial = Tuple2( fnow, fasignal);
-		var left = this.changes.collect{ |x| Tuple2( Some(x), None ) };
-		var right = fasignal.changes.collect{ |x| Tuple2( None , Some(x) ) };
-		^(left | right).inject(initial, { |lastPair,x|
-			var at1 = x.at1;
-			var at2 = x.at2;
-			if( at1.isDefined ) {
-				Tuple2(at1.get, lastPair.at2)
-			} {
-				Tuple2(lastPair.at1, at2.get)
-			}
-		}).collect{ |tp| tp.at1.(tp.at2) }.hold(fnow.(fasignalnow))*/
-		^ApplySignalES(this.changes, fasignal.changes, fnow, fasignal.now).hold( fnow.(fasignalnow) )
+		^ApplySignalES(this.changes, fasignal.changes, fnow, fasignalnow).hold( fnow.(fasignalnow) )
+    }
+
+    //apply time-varying function to EventSources
+    <@> { |es|
+        //apply a signal with a function to every incoming event
+        ^es.collect{ |x| this.now.value(x) }
+    }
+
+     <@ { |es|
+        //apply a signal with a function to every incoming event
+        ^es.collect{ |x| this.now }
     }
 
     flatCollect { |f, initialState|
         ^FlatCollectedFPSignal( this, f, initialState)
+    }
+
+    switch { |f, initialState|
+        ^this.flatCollect( f, initialState)
     }
 
     inject { |init, f|
@@ -128,7 +132,6 @@ FPSignal {
     }
 
     reactimate{ //this stream should returns IOs
-        "FPSignal reactimate".postln;
 		^Writer( Unit, Tuple3([],[this.changes],[this.now]) )
 	}
 
@@ -139,11 +142,6 @@ FPSignal {
     debug { |string|
         ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
     }
-
-    //make it faster
-    <*> {  |fa|
-		^this.apply(fa)
-	}
 
 	fmap { |f|
 		^this.collect(f)
@@ -171,13 +169,38 @@ FPSignal {
         ^this.storePrevious.collect{ |tup| tup.at1 != tup.at2 }
     }
 
+    //time related signal methods
+    //For these methods this should be signal with the time value
     integral { |tsig|
         var delta = tsig.storePrevious.collect{ |tup| tup.at2-tup.at1 };
-        var inc = (_*_) <%> delta <*> this;
+        var inc =  (_*_) <%> this <@> delta.changes; //only updates when tsig updates
         ^inc.inject(0, {|state, inc|
             state = state + inc
-        })
+        }).hold(0.0)
     }
+
+    changeRate { |rateSig|
+        ^rateSig.integral(this)
+    }
+
+    line{ |start, end, dur|
+
+        ^this.collect{ |t|
+            var x = (t/dur).min(1.0).max(0.0);
+            ((1-x)*start) + (x*end)
+        }
+    }
+
+    xline{ |start, end, dur|
+
+        ^this.collect{ |t|
+            var x = (t/dur).min(1.0).max(0.0);
+            var ratio = end/start;
+            (ratio ** x) * start
+        }
+    }
+
+    //*************************
 
     linlin { |inMin, inMax, outMin, outMax, clip=\minmax|
         ^this.collect( _.linlin(inMin, inMax, outMin, outMax, clip) )
@@ -185,6 +208,14 @@ FPSignal {
 
     linexp { |inMin, inMax, outMin, outMax, clip=\minmax|
         ^this.collect( _.linexp(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    nlin { |outMin, outMax, clip=\minmax|
+        ^this.collect( _.linlin(0.0, 1.0, outMin, outMax, clip) )
+    }
+
+    nexp { |outMin, outMax, clip=\minmax|
+        ^this.collect( _.linexp(0.0, 1.0, outMin, outMax, clip) )
     }
 
     explin { |inMin, inMax, outMin, outMax, clip=\minmax|
@@ -201,6 +232,22 @@ FPSignal {
 
     curvelin { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
         ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
+    }
+
+    + { |signal|
+        ^(_+_) <%> this <*> signal
+    }
+
+    * { |signal|
+        ^(_*_) <%> this <*> signal
+    }
+
+    / { |signal|
+        ^(_/_) <%> this <*> signal
+    }
+
+    - { |signal|
+        ^(_-_) <%> this <*> signal
     }
 }
 

@@ -18,7 +18,7 @@
 
 IO{
 	classvar <>environmentVarForResult;
-	
+
 	var <func;
 	*new{ |func| ^super.newCopyArgs(func) }
 
@@ -33,7 +33,7 @@ IO{
 			)
 		);
 	}
-	
+
 	*activate {
 		//like ghci, calls unsafePerformIO on any IO returned
 		thisProcess.interpreter.codeDump = { |str, val, func|
@@ -49,25 +49,26 @@ IO{
 						} {
 							val.unsafePerformIO
 						}
-					}			
+					}
 				} {
 					val.unsafePerformIO
 				}
 			}
 		};
-	}	
-	
+	}
+
 	*deactivate {
 		thisProcess.interpreter.codeDump = nil;
-	}	
+	}
 
 
 	unsafePerformIO{ ^func.value }
 	value{ ^func.value }
+
 }
 
 + Object {
-	
+
 	putStrLn { ^IO{ postln(this) } }
 
 }
@@ -76,11 +77,11 @@ IO{
 	frontIO {
 		^IO{ this.front }
 	}
-	
+
 	closeIO {
 		^IO{ this.close }
 	}
-	
+
 	setPropIO { |...args| //selector, args
 		^IO{ this.performMsg(args) }
 	}
@@ -90,13 +91,27 @@ IO{
 	frontIO {
 		^IO{ this.front }
 	}
-	
+
 	closeIO {
 		^IO{ this.close }
 	}
-	
+
 	setPropIO { |...args| //selector, args
 		^IO{ this.performList(*args) }
 	}
+}
+
++ String {
+    unixCmdIO {
+        ^IO{ this.unixCmd }
+    }
+}
+
+
++ NetAddr {
+
+    sendMsgIO { |...args|
+        ^IO{ this.sendMsg(args) }
+    }
 }
 

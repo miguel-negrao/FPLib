@@ -17,7 +17,7 @@
 */
 
 
-State {
+ST {
   	var <f;
 
   	*initClass{
@@ -26,18 +26,18 @@ State {
 		TypeClasses.addInstance(this,
 			(
 				'fmap': { |fa,f|
-					State({ |s|
+					ST({ |s|
 						var stuple = fa.f.(s);
-						Tuple2( stuple.at1, f.(stuple.at2) )
+						T( stuple.at1, f.(stuple.at2) )
 					})
 				},
 				'bind': { |fa,f|
-					State({ |s|
+					ST({ |s|
 						var satuple = fa.f.(s);
 						f.(satuple.at2).runState(satuple.at1)
 					})
                 },
-				'pure': { |r| State({ |s| Tuple2(s,r) }) }
+				'pure': { |r| ST({ |s| T(s,r) }) }
 			)
 		);
 	}
@@ -46,16 +46,16 @@ State {
   	*new { |f| ^super.newCopyArgs(f) }
 
   	*put { |newState|
-  		^State({ |oldState| Tuple2(newState,Unit) })
+  		^ST({ |oldState| T(newState,Unit) })
   	}
 
-    *get { ^State({ |s| Tuple2(s,s) }) }
+    *get { ^ST({ |s| T(s,s) }) }
 
   	runState { |s| ^f.(s) }
   	evalState { |s| ^this.runState(s).at2 } //return the result
   	execState { |s|^this.runState(s).at1 } //return the state
 
 	//g:S => S
-	withState { |g| ^State(f <> g )  }
+	withState { |g| ^ST(f <> g )  }
 
 }
