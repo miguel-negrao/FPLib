@@ -42,8 +42,9 @@
         ^[item]++this
     }
 
-
-
+    takeN { |n|
+        ^this[..(n-1)]
+    }
 }
 
 

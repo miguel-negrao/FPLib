@@ -84,6 +84,13 @@ fork{
 )
 */
 
+//shortcut
+LL {
+    *new{ |...args|
+        ^args.asLazy
+    }
+}
+
 LazyList {
 
 	isEmpty {  }
