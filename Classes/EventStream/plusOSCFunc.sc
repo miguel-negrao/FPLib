@@ -25,7 +25,7 @@
     *asENInput { |path, srcID, recvPort, argTemplate, dispatcher|
         var es = EventSource();
         var addHandler = IO{
-            var f = { |msg| es.fire(msg[0]) };
+            var f = { |msg| es.fire(msg) };
             var osc = OSCFunc(f, path, srcID, recvPort, argTemplate, dispatcher);
 			IO{ osc.free }
 		};
