@@ -26,9 +26,8 @@ IO{
     collect { |f| ^IO{ f.(this.value) } }
 
 //Monad
-    >>= { |f| ^f.(this.value) }
-    bind { |f| ^f.(this.value) }
-    *pure{ |a| ^IO{ a } }
+    >>= { |f| ^IO{ f.(this.value).value } }
+    *makePure{ |a| ^IO{ a } }
 
 	unsafePerformIO{ ^func.value }
 	value{ ^func.value }

@@ -12,36 +12,40 @@ Option {
 
     /*
                 very intersting: traverse cannot be defined for Option in a dynamic language, because
-                there is no specification of what the class of f.(a) should be for None...
+                there is no specification of what the class of f.(a) should be for None()...
                 'traverse' : { |f,a|
                 var fa = f.(a);
                 if( a.isDefined) {
                 f.a.fmap{ |x| Some(x) }
                 } {
-                None.pure(?????)
+                None().pure(?????)
                 }
                 }*/
 
-    *new{ |x| ^if (x.isNil){ None }{ Some(x) } }
+    *from{ |x| ^if (x.isNil){ None() }{ Some(x) } }
 
-    *empty{ ^None }
+    *empty{ ^None() }
 
-    *pure { |a| ^Some(a) }
+    *makePure { |a| ^Some(a) }
 
     == { |ob|
-        ^this.match(
-            { |a|
-                ob.match(
-                    { |b|
-                        a == b
-                    },{
-                        false
-                    }
-                )
-            }, {
-                false
-            }
-        )
+        ^if(ob.isKindOf(Option) ) {
+            this.match(
+                { |a|
+                    ob.match(
+                        { |b|
+                            a == b
+                        },{
+                            false
+                        }
+                    )
+                }, {
+                    ob.isEmpty
+                }
+            )
+        } {
+            false
+        }
     }
 
 }
@@ -69,10 +73,9 @@ Some : Option {
 
     collect{ |f| ^Some(f.(this.get)) }
 
-    bind { |f| ^f.(this.get) }
     >>= { |f| ^f.(this.get) }
 
-    select{ |p| ^if(p.(this.get)){ this }{ None } }
+    select{ |p| ^if(p.(this.get)){ this }{ None() } }
 
     do{ |f| f.(this.get) }
 
@@ -89,41 +92,54 @@ Some : Option {
     }
 }
 
-None : Option {
+None : Option{
+    classvar singleton;
 
-    *match{ |fsome, fnone|
+    *initClass{
+        singleton = None.makeNew();
+    }
+
+    *makeNew{
+        ^super.new
+    }
+
+    *new {
+        ^singleton
+    }
+
+    match{ |fsome, fnone|
         ^fnone.()
     }
-    *isEmpty{ ^true }
 
-    *get{ Error("None.get").throw }
+    isEmpty{ ^true }
 
-    *isDefined{ ^false }
+    get{ Error("None().get").throw }
 
-    *getOrElse{ |default| ^default }
+    isDefined{ ^false }
 
-    *getOrElseDoNothing{ IO{ Unit } }
+    getOrElse{ |default| ^default }
 
-    *orNil{ ^nil }
+    getOrElseDoNothing{ ^IO{ Unit } }
 
-    *collect{}
+    orNil{ ^nil }
 
-    *bind {}
-    *bindIgnore {}
+    collect{}
 
-    *select{}
+    >>= {}
 
-    *do{}
+    select{}
 
-    *exists{ false }
+    do{}
 
-    *orElse{ |alternative| ^alternative }
+    exists{ ^false }
 
-    *asArray{ ^[] }
+    orElse{ |alternative| ^alternative }
 
-    *flatten{ ^this.asArray }
-    *printOn { arg stream;
-        stream << "None";
+    asArray{ ^[] }
+
+    flatten{ ^this.asArray }
+    printOn { arg stream;
+        stream << "None()";
     }
 
 }
@@ -139,7 +155,7 @@ None : Option {
 + Nil {
 
     asOption {
-        ^None
+        ^None()
     }
 }
 
@@ -147,7 +163,7 @@ None : Option {
 
     atOption { |i|
         var x = this.at(i);
-        ^if(x.isNil) { None } { Some(x) }
+        ^if(x.isNil) { None() } { Some(x) }
     }
 
     catOptions {
@@ -162,7 +178,7 @@ None : Option {
 
     catOptions2 {
         ^if( this.isEmpty ) {
-            None
+            None()
         } {
             Some( this.catOptions )
         }

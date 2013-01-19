@@ -51,9 +51,8 @@ ST {
             f.(satuple.at2).runState(satuple.at1)
         })
     }
-    bind { |f| ^this >>= f }
 
-    *pure { |r|
+    *makePure { |r|
         ^ST({ |s| T(s,r) })
     }
 

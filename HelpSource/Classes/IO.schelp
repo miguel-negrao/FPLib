@@ -7,7 +7,7 @@ code::
 
 IO{ "did a side effect".postln }.unsafePerformIO
 
-IO{ "did a side effect, but will return 32".postln; 32 }.fmap(_*10).unsafePerformIO
+IO{ "did a side effect, but will return 32".postln; 32 }.collect(_*10).unsafePerformIO
 
 // compose two side-effects
 x = IO{ "did a".postln; Unit } >>=| IO{ "did b".postln; Unit }

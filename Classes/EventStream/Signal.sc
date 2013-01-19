@@ -235,7 +235,7 @@ FPSignal {
         ^FlatCollectedFPSignal( this, f, initialState)
     }
 
-    *pure { |a|
+    *makePure { |a|
         ^Var(a)
     }
 }
@@ -313,14 +313,14 @@ FlatCollectedFPSignal : ChildFPSignal {
         };
         if(initialSignalArg.isNil) {
 			//get first signal from the switcher signal
-			FPSignal.buildFlatCollect = Some(None);
+			FPSignal.buildFlatCollect = Some(None());
 			initSignal = f.(parent.now);
 			initialState = Tuple2(FPSignal.buildFlatCollect.get,initSignal);
-			FPSignal.buildFlatCollect = None;
+			FPSignal.buildFlatCollect = None();
 		} {
 			//or use the provided first signal
 			initSignal = initialSignalArg;
-			initialState = Tuple2(None,initSignal);
+			initialState = Tuple2(None(),initSignal);
 		};
         initSignal.changes !? _.addListener(thunk);
         this.initChildFPSignal(parent, { |event, tuple|
@@ -334,12 +334,12 @@ FlatCollectedFPSignal : ChildFPSignal {
               //disconnect the old chain from it's start point
              lastSigStart.do{ |x| x.tryPerform(\remove) };
              //let's discover where the new chain starts
-             FPSignal.buildFlatCollect = Some(None);
+             FPSignal.buildFlatCollect = Some(None());
              nextSigEnd = f.(event);
              //if a new EventSource was created the first one created will be here:
              nextSigStart = FPSignal.buildFlatCollect.get;
              //reset the global variable
-             FPSignal.buildFlatCollect = None;
+             FPSignal.buildFlatCollect = None();
              thunk.( nextSigEnd.now );
              //start receiving events from new EventStream
              nextSigEnd.changes !? _.addListener( thunk );

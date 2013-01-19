@@ -27,7 +27,7 @@ Memory tests:
 	~consume.( xs.tail );
 };
 
-None of these tests should cause huge increases in memory
+None() of these tests should cause huge increases in memory
 
 fork{ 
 	~consume.( LazyList.iterate(0,{ 10000.collect{ Rect(1,1,1,1) } }) ) 

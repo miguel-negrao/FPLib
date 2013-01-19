@@ -14,7 +14,7 @@ Inside do blocks:
 // m =  0
 Do( expr1 ; expr2 ) -> expr1 >>= { expr2 }
 Do( x <- a; expr ) -> a >>= { |x| expr }
-Do( x <- a; return expr x ) -> a.fmap{ |x| expr x }
+Do( x <- a; return expr x ) -> a.collect{ |x| expr x }
 
 // m > 0;
 Do( x <- expr1; ...rest ) -> expr1 >>= { |x| ...rest };
@@ -71,12 +71,12 @@ DoNotation {
         still have to check that return is the first token to appear after the last semicolon, otherwise it might be a method called return...
 
         */
-        var return = semicolons.fmap{ |semicolons|
+        var return = semicolons.collect{ |semicolons|
             string.find("return").asOption >>= { |i|
                 if(i>semicolons.last) {
                     Some(i)
                 } {
-                    None
+                    None()
                 }
             }
         };
@@ -123,10 +123,10 @@ DoNotation {
             //Validation[Tuple2[Option[Int],LazyList]]
             var semicolonsRelativeToLetsTuple = if(semicolons.size == 1 ) {
                 //only one semicolon
-                Tuple2(None, LazyListEmpty).success
+                Tuple2(None(), LazyListEmpty).success
             } {
                 var restOfSemicolons = semicolons[1..].asLazy;
-                var default = Tuple2(None, restOfSemicolons).success;
+                var default = Tuple2(None(), restOfSemicolons).success;
                 lets.collect{ |lets|
                     findSemicolonOfLastLet.( default, lets.asLazy, restOfSemicolons )
                 }.getOrElse( default )
@@ -150,11 +150,11 @@ DoNotation {
 
 
                 //Option[Int]
-                var arrowPosBeforeTheFirstSemicolonOption = arrow.flatCollect{ |pos|
+                var arrowPosBeforeTheFirstSemicolonOption = arrow >>= { |pos|
                     if( pos < semicolons[0] ) {
                         Some(pos)
                     } {
-                        None
+                        None()
                     }
                 };
 
@@ -198,7 +198,7 @@ DoNotation {
                         return.collect{ |return|
                             //inside Maybe
                             var endExpression = string[(return+6)..].stripWhiteSpace;
-                            strings[0]++".fmap{ "++strings[1]++varExpression++endExpression++" }"
+                            strings[0]++".collect{ "++strings[1]++varExpression++endExpression++" }"
                         }.getOrElse({
                             var endExpression = string[(posLastSemicolonToBeProcessed+1)..];
                             strings[0]++" >>= { "++strings[1]++varExpression++endExpression++" }"

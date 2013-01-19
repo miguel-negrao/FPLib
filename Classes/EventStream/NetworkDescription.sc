@@ -12,16 +12,22 @@ EventNetwork {
 		var f  = { |v| v.unsafePerformIO };
 		var doFinalIO = IO{ finalIOES.do(f) };
 		var stopDoingFinalIO = IO{ finalIOES.stopDoing(f) };
-		var iosLater = tuple.at3.sequence;
+        var iosLater = tuple.at3.sequence(IO);
 
 		//inputs
 		var unregister;
-		var registerIO = tuple.at1.sequence >>= { |x| IO{ unregister = x;
+        var registerIO = tuple.at1.sequence(IO) >>= { |x| IO{ unregister = x;
 			Unit
 		  } };
-		var unregisterIO = IO{ unregister } >>= { |x|  x !? _.sequence; };
+        var unregisterIO = IO{
+            if(unregister.notNil) {
+                unregister.do(_.unsafePerformIO )
+            }
+        };
+        var actuate = doFinalIO >>=| registerIO >>=| iosLater;
+        var pause = stopDoingFinalIO >>=| unregisterIO;
 
-		^super.newCopyArgs( doFinalIO >>=| registerIO >>=| iosLater, stopDoingFinalIO >>=| unregisterIO )
+        ^super.newCopyArgs( actuate, pause )
 	}
 
 	*returnDesc { |a| ^Writer( a, Tuple3([],[],[]) ) }
@@ -29,7 +35,11 @@ EventNetwork {
 
 	actuateNow { actuate.unsafePerformIO; ^Unit }
 	pauseNow { pause.unsafePerformIO; ^Unit }
-
+    /*
+    addAction { |f| } where is a function to call with the new event whenever
+    a new event arrives.
+    removeAction is an action to call to stop sending events
+    */
 	*makeES { |addAction, removeAction|
         var addHandler;
 		var es = EventSource();
@@ -82,7 +92,7 @@ ENTimer {
         ^IO{ task.resume }
 	}
 	actions {
-        ^[ { |action| this.action_( Some(action) ) }, { this.action_(None) } ]
+        ^[ { |action| this.action_( Some(action) ) }, { this.action_(None()) } ]
 	}
 
     asENInput {

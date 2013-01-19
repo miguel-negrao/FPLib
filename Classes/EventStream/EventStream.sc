@@ -105,7 +105,11 @@ EventSource : EventStream {
         listeners = [];
     }
 
-    addListener { |f| listeners = listeners ++ [f]; ^Unit }
+    addListener { |f|
+        //" addListener % % %".format(this, this.hash, f.def.sourceCode).postln;
+        listeners = listeners ++ [f];
+        ^Unit
+    }
 
     removeListener { |f| listeners.remove(f); ^Unit }
 
@@ -171,7 +175,14 @@ EventSource : EventStream {
 	}
 
     fire { |event|
-	    //("running fire "++event++" "++this.hash).postln;
+	    //debug
+        /*
+        ("running fire "++event++" "++this.hash).postln;
+        "listeners:".postln;
+        listeners.do{ |f|
+            " % ,  % ".format(f.def.sourceCode, f).postln;
+        };*/
+
 	    //copy is used here because listerFuncs might mutate the listeners variable
 	    //change this to a FingerTree in the future.
         listeners.copy.do( _.value(event) );
@@ -230,7 +241,7 @@ EventSource : EventStream {
 			bus.setn( initVal.asArray );
 			^Some( Tuple2( bus, f) )
 		} {
-			^None
+			^None()
 		}
 	}
 
@@ -258,6 +269,14 @@ EventSource : EventStream {
 
     linexp { |inMin, inMax, outMin, outMax, clip=\minmax|
         ^this.collect( _.linexp(inMin, inMax, outMin, outMax, clip) )
+    }
+
+    nlin { |outMin, outMax, clip=\minmax|
+        ^this.collect( _.linlin(0.0, 1.0, outMin, outMax, clip) )
+    }
+
+    nexp { |outMin, outMax, clip=\minmax|
+        ^this.collect( _.linexp(0.0, 1.0, outMin, outMax, clip) )
     }
 
     explin { |inMin, inMax, outMin, outMax, clip=\minmax|
@@ -384,7 +403,7 @@ FlatCollectedES : ChildEventSource {
 	var thunk;
 
     *new { |parent, f, init|
-        ^super.new(Tuple2(None,init)).init(parent, f)
+        ^super.new(Tuple2(None(),init)).init(parent, f)
     }
 
     init { |parent, f|
@@ -405,7 +424,7 @@ FlatCollectedES : ChildEventSource {
              lastESStart.do{ |x| x.tryPerform(\remove) };
              //let's discover where the new chain starts
              //I don't think that there is a situation where another flatcollect handler would be started here but who knows...
-             EventStream.buildFlatCollect = EventStream.buildFlatCollect.add(None);
+             EventStream.buildFlatCollect = EventStream.buildFlatCollect.add(None());
              nextESEnd = f.(event);
              //if a new EventSource was created the first one created will be here:
              nextESStart = EventStream.buildFlatCollect.pop(-1);

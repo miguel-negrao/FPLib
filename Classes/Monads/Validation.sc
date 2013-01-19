@@ -33,18 +33,22 @@ Validation {
 
     //they are equal if they are both Success and a==b or if they are both Failure
     == { |that|
-        ^this.match(
-            { |a|
-                that.match(
-                    { |b|
-                        a == b
-                    }, {
-                        false
-                })
-            },{
-                that.match({ false },{true})
-            }
-        )
+        ^if(that.isKindOf(Validation) ) {
+            this.match(
+                { |a|
+                    that.match(
+                        { |b|
+                            a == b
+                        }, {
+                            false
+                    })
+                },{
+                    that.match({ false },{true})
+                }
+            )
+        } {
+            false
+        }
     }
 
 //Functor
@@ -56,16 +60,17 @@ Validation {
 	>>= { |f|
 		^this.match(f.(_), { |e| Failure(e) })
 	}
-    pure { |a| ^Success(a) }
+
+    *makePure { |a| ^Success(a) }
 
 //Applicative
-	<*> { |f|
-		^this.match({ |x|
-			f.match({ |k|
-				Success( k.(x) )
+	<*> { |x|
+		^x.match({ |x|
+			this.match({ |f|
+				Success( f.(x) )
 			}, { |e2| Failure(e2) })
 		}, { |e1|
-			f.match({ |x|
+			this.match({ |f|
 				Failure(e1)
 			},{ |e2|
 				Failure( e1 |+| e2 )

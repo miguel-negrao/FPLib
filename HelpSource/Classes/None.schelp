@@ -1,4 +1,4 @@
-CLASS:: None
+CLASS:: None()
 summary:: Represents a non-existing value.
 categories:: FP
 related:: Classes/Option

@@ -54,7 +54,7 @@ Writer {
 		^Writer( k.a, w |+| k.w )
 	}
 
-    *pure { |a,class|
+    *makePure { |a,class|
         Writer(a, class !? _.zero ?? {[]}) //where to store the zero ?
     }
 

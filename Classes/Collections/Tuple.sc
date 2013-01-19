@@ -37,30 +37,16 @@ T{
 Tuple2{
 	var <at1, <at2;
 
-	*initClass{
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-		TypeClasses.addInstance(this,
-			(
-				'append': { |a,b| "append a:% b:%".format(a,b).postln; Tuple2( a.at1 |+| b.at1, a.at2 |+| b.at2 ) },
-				'zero': { |class1, class2| Tuple2( class1.zero, class2.zero) }
-			)
-		);
-	}
-
-
 	*new { |at1, at2|
 		^super.newCopyArgs(at1, at2)
 	}
 
-	collect { |f|
-		^Tuple2( f.(at1), f.(at2) )
-	}
-
-	fmap { |f| ^this.collect(f) }
-
 	== { |tuple|
-		^(this.at1 == tuple.at1) && (this.at2 == tuple.at2)
+        ^if(tuple.isKindOf(Tuple2) ) {
+            (this.at1 == tuple.at1) && (this.at2 == tuple.at2)
+        } {
+            false
+        }
 	}
 
 	printOn { arg stream;
@@ -74,35 +60,31 @@ Tuple2{
     at2_{ |v|
         ^Tuple2(this.at1,v)
     }
+
+
+//Functor
+	collect { |f|
+		^Tuple2( f.(at1), f.(at2) )
+	}
+
+//Monoid
+    |+| { |b| ^Tuple2( this.at1 |+| b.at1, this.at2 |+| b.at2 ) }
+    zero { |class1, class2| Tuple2( class1.zero, class2.zero) }
 }
 
 Tuple3{
 	var <at1, <at2, <at3;
 
-	*initClass{
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-		TypeClasses.addInstance(this,
-			(
-				'append': { |a,b| Tuple3( a.at1 |+| b.at1, a.at2 |+| b.at2, a.at3 |+| b.at3 ) },
-				'zero': { |class1, class2| Tuple2( class1.zero, class2.zero) }
-			)
-		);
-	}
-
-
 	*new { |at1, at2, at3|
 		^super.newCopyArgs(at1, at2, at3)
 	}
 
-	collect { |f|
-		^Tuple3( f.(at1), f.(at2), f.(at3) )
-	}
-
-	fmap { |f| ^this.collect(f) }
-
 	== { |tuple|
-		^(this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3)
+		^if(tuple.isKindOf(Tuple3) ) {
+            (this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3)
+        } {
+            false
+        }
 	}
 
 	printOn { arg stream;
@@ -120,35 +102,42 @@ Tuple3{
     at3_{ |v|
         ^Tuple3(this.at1, this.at2, v)
     }
+
+//Functor
+	collect { |f|
+		^Tuple3( f.(at1), f.(at2), f.(at3) )
+	}
+
+//Monoid
+    |+| { |b| ^Tuple3( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3 ) }
+    zero { |class1, class2, class3| Tuple3( class1.zero, class2.zero, class3.zero) }
 }
 
 Tuple4{
 	var <at1, <at2, <at3, <at4;
 
-	*initClass{
-		Class.initClassTree(TypeClasses);
-		//type instances declarations:
-		TypeClasses.addInstance(this,
-			(
-				'append': { |a,b| Tuple4( a.at1 |+| b.at1, a.at2 |+| b.at2, a.at3 |+| b.at3, a.at4 |+| b.at4 ) },
-				'zero': { |class1, class2, class3, class4| Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
-			)
-		);
-	}
-
 	*new { |at1, at2, at3, a4|
 		^super.newCopyArgs(at1, at2, at3, a4)
 	}
 
-	collect { |f|
-		^Tuple4( f.(at1), f.(at2), f.(at3), f.(at4) )
-	}
-
 	== { |tuple|
-		^(this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3) && (this.at4 == tuple.at4)
+        ^if(tuple.isKindOf(Tuple2) ) {
+            (this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3) && (this.at4 == tuple.at4)
+        } {
+            false
+        }
 	}
 
 	printOn { arg stream;
 		stream << "(" << at1 << ", " << at2 << ", " << at3 << ", " << at4 <<")"
 	}
+
+//Functor
+	collect { |f|
+		^Tuple4( f.(at1), f.(at2), f.(at3), f.(at4) )
+	}
+
+//Monoid
+    |+| { |b| ^Tuple3( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3, this.at4 |+| b.at4 ) }
+    zero { |class1, class2, class3, class4| Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
 }

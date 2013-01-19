@@ -15,10 +15,10 @@ TypeInstancesTests : UnitTest {
     test_Option {
         this.assertEquals( Some(1).collect{ |x| x + 1 } , Some(2), "Some collect");
         this.assertEquals( Some(1) >>= { |x| Some(x+1) } , Some(2), "Some bind 1");
-        this.assertEquals( None.bind{ |x| Some(x+1) } , None, "Some bind 2");
-        this.assertEquals( Some(1) >>= { |x| None } , None, "Some bind 3");
+        this.assertEquals( None() >>= { |x| Some(x+1) } , None(), "Some bind 2");
+        this.assertEquals( Some(1) >>= { |x| None() } , None(), "Some bind 3");
         this.assertEquals( { |x,y| x + y } <%> Some(1) <*> Some(1), Some(2), "Reader applicative 1");
-        this.assertEquals( { |x,y| x + y } <%> Some(1) <*> None, None, "Reader applicative 2");
+        this.assertEquals( { |x,y| x + y } <%> Some(1) <*> None(), None(), "Reader applicative 2");
 
     }
 
@@ -35,14 +35,27 @@ TypeInstancesTests : UnitTest {
         this.assertEquals( ({ |x,y| x + y } <%> Reader{ |x| x } <*> Reader{ |x| x * 2 }).run(10), 30, "Reader applicative");
     }
 
+    test_Traverse {
+        this.assertEquals( [].traverse(I.d, Option), Some([]), "traverse id empty");
+        this.assertEquals( [ Some(1) ].traverse(I.d, Option), Some( [1] ) , "traverse id one element");
+        this.assertEquals( [ Some(1), Some(2), Some(3) ].traverse(I.d, Option), Some( [1,2,3] ), "traverse id 3 elements" );
+
+    }
+
+    test_Validation {
+        this.assertEquals( [].traverse(I.d, Validation), Success([]), "traverse id empty");
+        this.assertEquals( [ Success(1) ].traverse(I.d, Validation), Success( [1] ) , "traverse id one element");
+        this.assertEquals( [ Success(1), Success(2), Success(3) ].traverse(I.d, Validation), Success( [1,2,3] ), "traverse id 3 elements" );
+    this.assertEquals( [ [" hello "].fail, Success(1), [" world "].fail ].traverse(I.d, Validation), Failure( [ " world ", " hello " ] ), "traverse id 3 elements" );
+    }
 
 
 }
 
+
+
 /*
 
 TypeInstancesTests().run
-
-
 
 */

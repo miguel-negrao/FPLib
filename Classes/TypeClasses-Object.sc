@@ -28,8 +28,8 @@
 
 //Applicative Functor
     //by default tries to use Monadic bind
-    //if it doesn't have you you'll get an error
-    <*> {  |fa| ^this.bind{ |g| fa.collect( g ) } }
+    //if it doesn't have a bind you you'll get an error
+    <*> {  |fa| ^this >>= { |g| fa.collect( g ) } }
 
     // a <* b : ignore value of b
 	<* { |fb|
@@ -51,19 +51,14 @@
     }
 
 //Monad
-    >>= { |f| Object.typeClassError("Monad").throw }
+    >>= { |f| }
     >>=| { |b| ^this >>= { b } }
 
-    //by default bind redirects to >>=
-    //this is needed because None can't use >>=
-    bind { |f| ^this >>= f }
-    bindIgnore { |b| ^this.bind{ b } }
-
-    pure { |class| ^class.pure(this) }
-    *pure { |class| ^class.pure(this) }
+    pure { |class| ^class.makePure(this) }
+    *pure { |class| ^class.makePure(this) }
 
     join {
-        ^this >>= I.d
+        ^this >>= { |x| x }
     }
 
 //Monoid
@@ -93,19 +88,45 @@
 
 	constf { ^{ |x| this } }
 
+    *getClass {
+		^if( this.class.isMetaClass ) {
+			this
+		} {
+			this.class
+		};
+	}
+
+	getClass {
+		^if( this.class.isMetaClass ) {
+			this
+		} {
+			this.class
+		};
+	}
+
+
 }
 
 
 /*
 [1,2,3,4].injectr([],{ |s,x| s++[x]})
 [Some(1), Some(2), Some(3)].sequenceMonad
-[Some(1), Some(2), None].sequenceMonad
+[Some(1), Some(2), None()].sequenceMonad
 [Some(1), Some(2)].sequenceMonad
 [Some(1)].sequenceMonad
 [].sequenceMonad(Option)
 */
 
 + Array {
+
+//Monad
+    >>= { |f| ^this.collect(f).flatten }
+    *makePure { |a| [a] }
+
+
+//Monoid
+    |+| { |b| ^this ++ b }
+    *zero { [] }
 
 //Monad related
     sequenceM { |monadClass|
@@ -118,7 +139,7 @@
             } {
                 var end = this.size-2;
                 this[0..end].injectr(this.last.collect{ |x| [x] }, { |mstate,m|
-                    m.bind{ |x| mstate.collect{ |y| [x]++y } }
+                    m >>= { |x| mstate.collect{ |y| [x]++y } }
                 })
             }
         }
@@ -135,49 +156,28 @@
             } {
                 var end = this.size-2;
                 this[0..end].injectr(this.last.collect{ Unit }, { |mstate,m|
-                    m.bindIgnore(mstate)
+                    m >>=| mstate
                 })
             }
         }
     }
 
-//Applicative related
-    traverse { |f, type|
-        var fclass;
-        if(this.size == 0) {
-            if( type.notNil ) {
-                if(type.class.isMetaClass) {
-                    //it's a class
-                    this.pure( type )
-                } {
-                    //it's a function that constructs the pure instance
-                    type.(this)
-                }
+//Traverse
+    traverse { |f, applicativeClass|
+        ^if(this.size == 0 ) {
+            //with an empty list we need a hint in order to know which monad to use
+            this.pure(applicativeClass)
+        }{
+            if(this.size == 1) {
+                f.( this.at(0) ).collect{ |z| [z] }
             } {
-                this
+                var end = this.size-2;
+                this[0..end].injectr( f.( this.last ).collect{ |z| [z] }, { |ys,v|
+                    f.(v).collect({ |z| { |zs| [z]++zs } }) <*> ys
+                })
             }
-        } {
-            var pureAppliedToEmptyArray = if( type.notNil ) {
-                if(type.class.isMetaClass) {
-                    //it's a class
-                    [].pure( type )
-                } {
-                    //it's a function that constructs the pure instance
-                    type.([])
-                }
-            }{
-                [].pure( f.(this[0]).getClass )
-            };
-            this.reverse.inject( pureAppliedToEmptyArray , { |ys,v|
-                f.(v).fmap({ |z| { |zs| [z]++zs } }) <*> ys
-            });
         }
     }
-
-//Monoid
-    |+| { |b| ^this ++ b }
-
-    *zero { [] }
 
 }
 
@@ -188,7 +188,7 @@
 
 //Monoid
     |+| { |b|
-        ^a + b
+        ^this + b
     }
 
     *zero { ^0 }
@@ -198,7 +198,7 @@
 
 //Monoid
     |+| { |b|
-        ^a ++ b
+        ^this ++ b
     }
 
     *zero { ^"" }

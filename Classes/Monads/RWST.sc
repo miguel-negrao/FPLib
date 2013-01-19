@@ -70,29 +70,6 @@ RWS {
 
     *writerMakeZero { } //need to overload this method in child classes
 
-    *initClass{
-        Class.initClassTree(TypeClasses);
-        //type instances declarations:
-        TypeClasses.addInstance(this,
-            (
-                'fmap': { |fa,f|
-                    this.new({ |r,s|
-                        var x = fa.run(r,s);
-                        x.at1_( f.( x.at1) )
-                    })
-                },
-                'bind': { |fa,f|
-                    this.new({ |r,s|
-                        var x1 = fa.run(r,s);
-                        var x2 = f.(x1.at1).run(r, x1.at2);
-                        x2.at3_( x1.at3 |+| x2.at3 )
-                    })
-                },
-                'pure': { |a,class| "I'm on pure % %".format(a,class).postln; class.intpure(a) }
-            )
-        );
-    }
-
     *new { |f| //r -> s -> (a, s, w)
         ^super.newCopyArgs(f)
     }
@@ -146,9 +123,8 @@ RWS {
             x2.at3_( x1.at3 |+| x2.at3 )
         })
     }
-    bind { |f| ^this >>= f }
 
-    *pure { |a|
+    *makePure { |a|
         ^this.new({ |r,s| T(a, s, this.writerMakeZero) })
     }
 
@@ -243,46 +219,12 @@ RWST {
     *writerZero { } //need to overload this method in child classes
     *monadReturn { |a| } //need to overload this method in child classes
 
-    *initClass{
-        Class.initClassTree(TypeClasses);
-        //type instances declarations:
-        TypeClasses.addInstance(this,
-            (
-                'fmap': { |fa,f|
-                    fa.fmap(f)
-                },
-                'bind': { |fa,f|
-                    fa >>= f
-                },
-                'pure': { |a,class| "I'm on pure % %".format(a,class).postln; class.intpure(a) }
-            )
-        );
-    }
-
     *new { |f| //r -> s -> (a, s, w)
         ^super.newCopyArgs(f)
     }
 
     run { |r,s|
         ^runRWS.(r, s)
-    }
-
-    //type classes methods
-    fmap{ |f|
-        ^this.class.new({ |r,s|
-            this.run(r,s).fmap{ |t| t.at1_( f.( t.at1) ) }
-        })
-    }
-
-    >>= { |f|
-        ^this.class.new({ |r,s|
-            this.run(r,s) >>= { |t1|
-                var s1 = t1.at2;
-                f.( t1.at1 ).run(r,s1).fmap{ |t2|
-                    t2.at3_( t1.at3 |+| t2.at3 )
-                }
-            }
-        })
     }
 
     //reader operations
@@ -315,9 +257,34 @@ RWST {
         ^this.get >>= { |s| this.put( f.(s) ) }
     }
 
+
+    //type classes methods
+//Functor
+    collect { |f|
+        ^this.class.new({ |r,s|
+            this.run(r,s).collect{ |t| t.at1_( f.( t.at1) ) }
+        })
+    }
+//Monad
+    >>= { |f|
+        ^this.class.new({ |r,s|
+            this.run(r,s) >>= { |t1|
+                var s1 = t1.at2;
+                f.( t1.at1 ).run(r,s1).collect{ |t2|
+                    t2.at3_( t1.at3 |+| t2.at3 )
+                }
+            }
+        })
+    }
+
     *return { |a|
         ^this.new({ |r,s| this.monadReturn( T(a, s, this.writerZero) ) })
     }
+
+    *makePure { |a,class|
+        ^class.intpure(a)
+    }
+
 
 }
 
@@ -332,5 +299,5 @@ RWSTArrE : RWSTArr {
 
 RWSTArrO : RWSTArr {
     *monadReturn{ |a| ^Some(a) }
-    *n{ ^this.new({ |r,s| None }) }
+    *n{ ^this.new({ |r,s| None() }) }
 }

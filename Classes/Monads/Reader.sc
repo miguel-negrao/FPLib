@@ -16,12 +16,11 @@ Reader{
 	collect{ |f| ^Reader( { |r| f.( func.(r) ) } ) }
 
 //Monad
-    *pure { |a|
+    *makePure { |a|
         ^Reader({ a })
     }
 
 	>>= { |f| ^Reader( { |r| f.(func.(r)).func.(r) } ) }
-    bind { |f| ^Reader( { |r| f.(func.(r)).func.(r) } ) }
 
 }
 

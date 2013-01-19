@@ -55,7 +55,7 @@ code::
 (_+_) <%> [3] <*> [2]
 
 { |x,y,z| x + y + y } <%> Some(3) <*> Some(2) <*> Some(4)
-{ |x,y,z| x + y + y } <%> Some(3) <*> Some(2) <*> None
+{ |x,y,z| x + y + y } <%> Some(3) <*> Some(2) <*> None()
 
 ::
 
@@ -66,7 +66,7 @@ code::
 f <%> a <*> b <*> c
 ::
 
-if a = Some(a'), b = Some(b') and c = Some(c'), this will return Some(f.(a',b',c')) otherwise it will return None.
+if a = Some(a'), b = Some(b') and c = Some(c'), this will return Some(f.(a',b',c')) otherwise it will return None().
 
 section::Monad
 
@@ -109,8 +109,24 @@ list::
 code::
 //If all elements in the list are Some's then you get a Some of the list of values
 [Some(2),Some(4)].sequence;
-//If one of them is a None you get a None
-[Some(3),None].sequence
+//If one of them is a None() you get a None()
+[Some(3),None()].sequence
+::
+
+code::
+[1, 2, 3].traverse({|i| putStrLn("got this "++i) }).unsafePerformIO
+::
+
+Double traversal:
+code::
+[[1,2,4,5],[2,3],[4,5,6]].traverse({|xs|
+	xs.traverse({ |j| ST({ |n| T(n+j, j) }) })
+}).runState(0)
+::
+
+State depends on elements and elements depend on state:
+code::
+[[1,2,4,5],[2,3],[4,5,6]].traverse({|i| ST({ |n| T(n+i.size, n+i.size) }) }).runState(0)
 ::
 
 
