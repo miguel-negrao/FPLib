@@ -1,8 +1,8 @@
 /*
-    FP Lib
-    Copyright 2012 Miguel Negrão.
+    FP Quark
+    Copyright 2012 - 2013 Miguel Negrão.
 
-    FP Lib: you can redistribute it and/or modify
+    FP Quark: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -13,8 +13,11 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with FP Lib.  If not, see <http://www.gnu.org/licenses/>.
+    along with FP Quark.  If not, see <http://www.gnu.org/licenses/>.
 
+    It is possible to add more type instances by adding the functions
+    directly to the dict from the initClass function of the class that
+    one wants to make an instance of some type class.
 */
 
 + Object {
