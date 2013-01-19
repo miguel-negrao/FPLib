@@ -289,22 +289,6 @@ LazyListEmpty : LazyList {
 
 }
 
-Zippp {
-
-	*new { |a, that|
-		var f = { |a,b|
-			if( (a.isEmpty) || (b.isEmpty) ) {
-				LazyListEmpty
-			} {
-				LazyListCons( Tuple2(a.head, b.head), { f.(a.tail, b.tail) } )
-			}
-		};
-		^f.(a, that)
-	}
-
-	
-}
-
 + Object {
 
 	%%{ |that| ^LazyListCons(this, that) }
