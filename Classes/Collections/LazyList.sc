@@ -21,7 +21,7 @@
 
 Memory tests:
 
-~consume = { |xs| 
+~consume = { |xs|
 	0.01.wait;
 	"ping".postln;
 	~consume.( xs.tail );
@@ -29,34 +29,34 @@ Memory tests:
 
 None() of these tests should cause huge increases in memory
 
-fork{ 
-	~consume.( LazyList.iterate(0,{ 10000.collect{ Rect(1,1,1,1) } }) ) 
+fork{
+	~consume.( LazyList.iterate(0,{ 10000.collect{ Rect(1,1,1,1) } }) )
 };
 
-fork{ 
-	~consume.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } }.zip(0.iterate{ 10000.collect{ Rect(2,2,2,2) } }) ) 
+fork{
+	~consume.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } }.zip(0.iterate{ 10000.collect{ Rect(2,2,2,2) } }) )
 };
 
 (
-~consume2 = { |xs| 
+~consume2 = { |xs|
 	0.1.wait;
 	"ping".postln;
 	~consume2.( xs.drop(10) );
 };
-fork{ 
-	~consume2.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } } ) 
+fork{
+	~consume2.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } } )
 };
 )
 
 //this is blowing up
 (
-~consume = { |xs| 
+~consume = { |xs|
 	0.1.wait;
 	"ping".postln;
 	~consume.( xs.tail );
 };
-fork{ 
-	~consume.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } }.zip(0.iterate{ 10000.collect{ Rect(2,2,2,2) } }).value ) 
+fork{
+	~consume.( 0.iterate{ 10000.collect{ Rect(1,1,1,1) } }.zip(0.iterate{ 10000.collect{ Rect(2,2,2,2) } }).value )
 };
 )
 
@@ -71,13 +71,13 @@ f = { |a,b|
 	}
 };
 
-~consume = { |xs| 
+~consume = { |xs|
 	0.1.wait;
 	"ping".postln;
 	~consume.( xs.tail );
 };
-fork{ 
-	~consume.( f.(0.iterate{ 10000.collect{ Rect(1,1,1,1) } }, 0.iterate{ 10000.collect{ Rect(2,2,2,2) } }) ) 
+fork{
+	~consume.( f.(0.iterate{ 10000.collect{ Rect(1,1,1,1) } }, 0.iterate{ 10000.collect{ Rect(2,2,2,2) } }) )
 };
 
 
@@ -87,7 +87,7 @@ fork{
 LazyList {
 
 	isEmpty {  }
-	
+
 	notEmpty { ^this.isEmpty.not }
 
 	match{ |fempty, fcons|	}
@@ -95,19 +95,19 @@ LazyList {
 	take { |n| }
 
 	drop { |n| }
-	
+
 	foldl { |start, f| }
 
 	asArray { }
-	
+
 	asLazy{ }
-	
+
 	cycle {
 		var f = { this.append({ { f.() } }) };
-		^f.()		
+		^f.()
 	}
 
-	*repeat { |a| 
+	*repeat { |a|
 		var g = { |a| LazyListCons(a, { this.repeat(a) }) };
 		^g.(a)
 	}
@@ -134,18 +134,18 @@ LazyListCons : LazyList {
 	var <head, tailFunc, tailEvaluated;
 
 	*new{ |head, tail|
-		//if we already have a value store it in tailEvaluated otherwise store 
+		//if we already have a value store it in tailEvaluated otherwise store
 		//the function tailFunc to be evaluated later.
 		^if( tail.isKindOf( Function ) ) {
 			super.newCopyArgs(head, tail)
 		} {
 			super.newCopyArgs(head, nil, tail)
-		}		
+		}
 	}
 
 	isEmpty { ^false  }
 
-	tail { 
+	tail {
 		//memoization
 		^tailEvaluated ?? { tailEvaluated = tailFunc.value; tailEvaluated }
 	}
@@ -177,7 +177,7 @@ LazyListCons : LazyList {
 	prToArray { |array|
 		^this.tail.value.prToArray( array.add(this.head) )
 	}
-	
+
 	//not checked for memory safety
 	foldl { |start,f|
 		^this.tail.foldl( f.(start, this.head), f)
@@ -193,7 +193,7 @@ LazyListCons : LazyList {
 		};
 		^f.(this, that)
 	}
-	
+
 	*zip { |a, that|
 		var f = { |a,b|
 			if( (a.isEmpty) || (b.isEmpty) ) {
@@ -208,7 +208,7 @@ LazyListCons : LazyList {
 	collect { |f|
 		^LazyListCons( f.(this.head), { this.tail.collect(f) })
 	}
-	
+
 	do{ |f|
         f.(this.head); this.tail.do(f); ^Unit
 	}
@@ -220,7 +220,7 @@ LazyListCons : LazyList {
 			this.tail.select(pred)
 		}
 	}
-	
+
 	//can't use ++ with LazyListEmpty
 	append { |that|
 		var v = that.value; //append is supposed to be lazy on the list to append,
@@ -231,19 +231,19 @@ LazyListCons : LazyList {
 			^LazyListCons(this.head, { this.tail.append(v) } )
 		}
 	}
-	
+
 	|+| { |that|
 		^this.append(that)
 	}
-	
+
 	zero { ^LazyListEmpty }
-	
+
 	add { |that|
-		^this.append( LazyListCons(that,LazyListEmpty) );	
+		^this.append( LazyListCons(that,LazyListEmpty) );
 	}
-	
+
 	printOn { arg stream;
-		var array = this.take(21).asArray;		
+		var array = this.take(21).asArray;
 		if( array.size == 21) {
 			array.pop;
 			stream << "LazyList[";
@@ -277,12 +277,12 @@ LazyListEmpty : LazyList {
 	*do{ ^Unit }
 	|+| { |that|
 		^this.append(that)
-	}	
+	}
 	zero { ^LazyListEmpty }
 	*add { |that|
 		^LazyListCons(that, LazyListEmpty)
 	}
-	
+
 	*foldl { |start,f|
 		^start
 	}
@@ -292,16 +292,16 @@ LazyListEmpty : LazyList {
 + Object {
 
 	%%{ |that| ^LazyListCons(this, that) }
-	
+
 	//shortcuts
-	repeat {
+	repeatLL {
 		^LazyList.repeat(this)
 	}
-	
+
 	iterate { |f|
 		^LazyList.iterate(this,f)
 	}
-	
+
 	replicate { |n|
 		^LazyList.replicate(n,this)
 	}
