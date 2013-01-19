@@ -131,7 +131,7 @@ code::
 (
 x = Var(1);
 y = Var(2);
-z = x.flatCollect{ |x| y.collect{ |y| [x,y] } };
+z = x >>= { |x| y.collect{ |y| [x,y] } };
 z.do(_.postln);
 )
 

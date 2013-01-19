@@ -231,7 +231,7 @@ x.fire(12);
 
 SUBSECTION:: flatCollect - Dynamic Event Switching
 
-This is the most important method of EventSource for it It allows selecting which events to output depending on the some other EventStream. code:: eventSource.flatCollect(f)::  creates a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
+This is the most important method of EventSource for it It allows selecting which events to output depending on the some other EventStream. code:: eventSource >>= (f)::  creates a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
 
 IMAGE::flatCollect.png::
 
@@ -242,7 +242,7 @@ code::
 a = EventSource();
 b = EventSource();
 //the result
-w = ~selector.flatCollect{ |v|
+w = ~selector >>= { |v|
 	if(v==0){a}{b}
 };
 w.do(_.postln);
@@ -290,7 +290,7 @@ code::
 (
 x = EventSource();
 y = EventSource();
-z = x.flatCollect{ |xvalue|
+z = x >>= { |xvalue|
 	y.collect{ |yvalue| xvalue + yvalue }
 };
 z.do( postln(_) )
@@ -444,7 +444,7 @@ code::
 a = EventSource();
 ~mute = EventSource(); 
 ~emitNothing = NothingES();
-~result = ~mute.flatCollect{ |v|
+~result = ~mute >>= { |v|
 	if( v == 0.0 ) {
 		a
 	} {
@@ -469,7 +469,7 @@ code::
 (
 ~streams = 4.collect{ EventSource() };
 ~selector = EventSource(); 
-~result = ~selector.flatCollect{ |i|
+~result = ~selector >>= { |i|
 	~streams[i]
 };
 ~result.do{ |v| postln("I got this: "++v) };
@@ -515,7 +515,7 @@ w = Window(bounds:Rect(200,200,200,100)).layout_(
 //an event source that emits nothing
 ~emitsNothing = NothingES();
 
-~result = ~button.flatCollect{ |v|
+~result = ~button >>= { |v|
 		if( v == 1.0 ) {
 		~knob
 	} {

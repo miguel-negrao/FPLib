@@ -446,7 +446,7 @@ code::
 x = EventSource();
 y = EventSource();
 z = EventSource();
-w = x.flatCollect{ |v|
+w = x >>= { |v|
  if(v==0){y}{z}
 };
 w.do(_.postln);

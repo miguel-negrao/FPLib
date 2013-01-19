@@ -3,40 +3,61 @@ summary:: Represents a functional event network which can be started and stopped
 categories:: FP
 related:: Classes/EventSource, Classes/FPSignal
 
-A functional event network connects inputs to outputs using only pure functional entities. These entities are EventStreams and FPSignals. Inputs can be anything that has a callback function that is called everytime an event happens. Outputs are FPSignals or EventStreams carrying an IO instance. By calling .reactimate on the signal or event stream you get an EventNetwork entity that represents an output e.g. code::anEventStream.collect( putStrLn(_) ).reactimate::.
+description::
+
+A functional event network connects inputs to outputs using only pure functional entities: EventStreams and FPSignals. The bookkeeping of the inputs and outpus is done by a Monad, the EventNetwork description,  with "type"
+
+code::
+Writer( Unit, Tuple3([IO(IO())], [EventStream[IO[Unit]]], [IO] ) )
+                  eventHandlers       reactimates        IOLater
+::
+ The Do statements in the examples below are operating on this monad. Essentially this monad (which is a Writer monad) has only two operations either registering an input or registering an output. The Writer monad contains a tuple with 3 arrays:
+
+-  The first holds functions to register and deregister callback functions to obtain new events.
+
+- The second holds EventStreams that emit IO instances to be executed when the network is activated (i.e. the outputs ).
+
+- The third contains IOs to be executed at the moment the network is activated.
+
+ Inputs can be anything that has a callback function that is called everytime an event happens. Outputs are FPSignals or EventStreams carrying an IO instance. By calling .reactimate on the signal or event stream you get an EventNetwork entity that represents an output e.g. code::anEventStream.collect( putStrLn(_) ).reactimate::.
 
 The EventNetwork code is based on the reactive-banana library for Haskell.
 
-Inputs
+Inputs:
+
 GUIs - Subclasses of VIew -> .asENInput
-EventSource -> .asENInput
-MKtlElement -> .asENInput
 
-Outputs
+EventSource:asENInput
+
+FPSignal:asENInput
+
+ENTimer:asENInput
+
+MKtlElement:asENInput
+
+OSCFunc:asENInput
+
+Outputs:
+
 anything that responds to value_ -> es.connectEN(object)
-other EventStream[IO[Unit]] -> .reactimate
 
+FPSignal:debug(label)
+EventSource:debug(label)
+
+other EventStream[IO[Unit]] or FPSignal[IO[Unit]] -> .reactimate
+
+After the NetworkDescription is assembled it can be compiled into an EventNetwork. This event network can then be activated (i.e. it will start processing incoming events) by calling code::myNetwork.actuate:: and it can be paused (i.e. incoming events are not processed ) by calling code::myNetwork.pause". actuate and pause are just IO instances.
+
+section::Examples
+
+Note::You need to run this before running the examples:
+code::
+    IO.activate;
+    DoNotation.activate;
+::
+::
 
 code::
-
-(
-//inputs
-x = EventSource();
-y = Var(1.0);
-//collected all the reactimates
-~networkDescription = 
-	x.asENInput >>= { |x| 
-	y.asENInput >>= { |y|
-	//outputs
-	x.collect{ |v| putStrLn(" es out : "++v) }.reactimate >>=|
-	y.collect{ |v| putStrLn(" var out : "++v) }.reactimate
-	}};
-//compile network
-~network = EventNetwork(~networkDescription);
-//start network
-~network.actuateNow;
-)
-
 (
 //inputs
 
@@ -53,24 +74,28 @@ y = Var(1.0);
 //compile network
 ~network = EventNetwork(~networkDescription);
 //start network
-~network.actuateNow;
+~network.actuate;
 )
 
 
-	
+
 x.fire(1.0)
 y.value_(4.5)
 ~network.pauseNow;
+//this is just for demonstration or testing
+//the idea is that you never have to call .fire yourself.
+::
 
+GUI:
 
-//GUI
+code::
 (
 
 ~slider = Slider().value_(0.3).front;
 //network
-~networkDescription = 
+~networkDescription =
 	//inputs
-	~slider.asENInput >>= { |x| 
+	~slider.asENInput >>= { |x|
 		var r = x.collect(_*100);
 		//outputs
 		r.collect{ |v| putStrLn(v) }.reactimate;
@@ -78,12 +103,13 @@ y.value_(4.5)
 //compile network
 ~network = EventNetwork(~networkDescription);
 //start network
-~network.actuateNow;
+~network.actuate;
 )
 
-~network.pauseNow;
+~network.pause;
+::
 
-//GUI
+code::
 (
 ~slider = Slider();
 //network
@@ -104,42 +130,9 @@ Do(
 )
 
 ~network.pause;
+::
 
-
-//MIDI
-(
-//Guis
-~slider = Slider().front;
-
-//MIDI
-k = MIDIMKtl('nnkn0');
-
-//network
-~networkDescription = Do(
-	//inputs
-	k.at(\sl_1_1).asENInput;
-	k.at(\sl_2_1).asENInput;
-	k.at(\sl_3_1).asENInput;
-	
-	//outputs
-	x.collect{ |v| putStrLn(v*100) }.reactimate;
-	y.collect{ |v| putStrLn(v) }.reactimate;
-	z.collect{ |v| putStrLn(v) }.reactimate;
-	y.connectIO(~slider).reactimate;
-
-);
-
-
-~network = EventNetwork(~networkDescription);
-~network.actuate;
-)
-
-
-~network.actuate;
-~network.pause;
-
-
-//GUI
+code::
 (
 //Setup GUI
 var sl1 = Slider();
@@ -151,32 +144,80 @@ w = Window(bounds:Rect(200,200,200,200)).layout_(
 
 //Setup Event Network
 //network
-~networkDescription = 
+~networkDescription =
 	//inputs
-	sl1.asENInput >>= { |x| 
+	sl1.asENInput >>= { |x|
 		var r = x.collect(_*100);
 		r.collect{ |v| putStrLn(v) }.reactimate >>=|
 		x.collect{ |v| 1-v }.connectEN(sl2) >>=|
 		x.collect{ |v| sl3.setPropIO(\moveTo, 100+(v*200), 300) }.reactimate;
 	};
-	
+
 //compile network
 ~network = EventNetwork(~networkDescription);
 
 //display guis and start network
-~result = ~network.actuate >>=| w.frontIO >>=| sl3.frontIO;
-//side effects happen.... NOW !
-~result.unsafePerformIO
+//move the left slider on the window with two sliders
+Do(
+	~network.actuate;
+	w.frontIO;
+	sl3.frontIO
+)
+)
+::
+
+MIDI:
+
+Using Modality toolkit
+
+code::
+(
+//Guis
+~slider = Slider().front;
+
+//MIDI
+//You need to have a NanoKONTROL connected for this to work
+k = MIDIMKtl('nnkn0');
+
+//network
+~networkDescription = Do(
+	//inputs
+	k.at(\sl_1_1).asENInput;
+	k.at(\sl_2_1).asENInput;
+	k.at(\sl_3_1).asENInput;
+
+	//outputs
+	x.collect{ |v| putStrLn(v*100) }.reactimate;
+	y.collect{ |v| putStrLn(v) }.reactimate;
+	z.collect{ |v| putStrLn(v) }.reactimate;
+	y.connectIO(~slider).reactimate;
+
+);
+
+~network = EventNetwork(~networkDescription);
+~network.actuate;
 )
 
-/*
-Notes on doing pure gui code:
 
-All property sets have to be be done with IO. How to do it ?
+~network.actuate;
+~network.pause;
+::
 
-gui.setProperty(\resizeTo, 100@200)
+OSC:
 
-*/
+code::
 
-x  = Slider().front
-x.setPropIO(\close).unsafePerformIO
+//send a "/slider" osc message to SuperCollider from somewhere else.
+(
+y = EventNetwork(
+    Do(
+        es <- OSCFunc.asENInput("/slider");
+        es.debug
+    )
+)
+)
+
+y.actuate;
+y.pause;
+::
+

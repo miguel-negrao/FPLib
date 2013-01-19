@@ -166,7 +166,7 @@ code::
 ~p1 = ~freqs.zip(~deltas);
 ~p2 = ~freqs.collect(_+200).zip(~deltas);
 ~but  = EventSource();
-~but.flatCollect { |butValue|
+~but >>=  { |butValue|
 	if(butValue == 1) {
 		~playLists.( ~p1 , ~deltas )
 	} {
