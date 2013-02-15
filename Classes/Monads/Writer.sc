@@ -51,7 +51,11 @@ Writer {
 //Monad
 	>>= { |f|
 		var k = f.(a);
-		^Writer( k.a, w |+| k.w )
+        if( k.class == this.class) {
+            ^Writer( k.a, w |+| k.w )
+        } {
+            Error(">>= class mismatch: this: % that %".format(this, k) ).throw
+        }
 	}
 
     *makePure { |a,class|
