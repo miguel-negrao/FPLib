@@ -3,6 +3,16 @@ FPLib
 
 Functional Programming library for SuperCollider
 
+Instalation
+==========
+
+Move this folder to the SuperCollider 'Extensions' folder.
+
+Dependencies: UnitTesting quark.
+
+Overview
+========
+
 Making full use of this library requires knowledge of modern Functional Programming concepts as implemented for instance in Haskell, specially familiarity with functors, applicative functors, monoids and monads.
 
 I recommend reading a book such as ["Learn you a Haskell for greater good"](http://http://learnyouahaskell.com/).
@@ -85,7 +95,4 @@ Unfortunatelly we can't assign it to a type alias in SuperCollider (perhaps will
 
   
 
-Instalation
-==========
 
-Just drag to your 'Extensions' folder.
