@@ -118,19 +118,30 @@ FPSignal {
     }
 
     //time related signal methods
+
+	//
+
+
     //For these methods this should be signal with the time value
     integral { |tsig|
-        var delta = tsig.storePrevious.collect{ |tup| tup.at2-tup.at1 };
+        var delta = tsig.delta;
         var inc =  (_*_) <%> this <@> delta.changes; //only updates when tsig updates
         ^inc.inject(0, {|state, inc|
-            state = state + inc
+            state + inc
         }).hold(0.0)
     }
 
+	//to be used on time signal
+	delta {
+		^this.storePrevious.collect{ |tup| tup.at2-tup.at1 };
+	}
+
+	//to be used on time signal
     changeRate { |rateSig|
         ^rateSig.integral(this)
     }
 
+	//to be used on time signal
     line{ |start, end, dur|
 
         ^this.collect{ |t|
@@ -139,6 +150,7 @@ FPSignal {
         }
     }
 
+	//to be used on time signal
     xline{ |start, end, dur|
 
         ^this.collect{ |t|
@@ -147,6 +159,17 @@ FPSignal {
             (ratio ** x) * start
         }
     }
+
+	//to be used on time signal
+    elapsedTime {
+         ^this.delta.inject( 0, { |elapsedT, delta|
+            elapsedT + delta
+		})
+    }
+
+	//
+	//switchLater { |tSig, laterSig, seconds|
+
 
     //*************************
 
@@ -198,6 +221,8 @@ FPSignal {
         ^(_-_) <%> this <*> signal
     }
 
+	//missing this combinator:
+	//switchB :: forall t a. Behavior t a -> Event t (AnyMoment Behavior a) -> Behavior t a
 
 //Functor
 	collect { |f|

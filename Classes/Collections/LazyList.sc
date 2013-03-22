@@ -84,6 +84,10 @@ fork{
 )
 */
 
+
+//note: because supercollider functions are eager, methods involving function could go
+//terribly wrong.
+
 //shortcut
 LL {
     *new{ |...args|
@@ -104,6 +108,8 @@ LazyList {
 	drop { |n| }
 
 	foldl { |start, f| }
+
+	flatten { }
 
 	asArray { }
 
@@ -190,6 +196,21 @@ LazyListCons : LazyList {
 		^this.tail.foldl( f.(start, this.head), f)
 	}
 
+	//foldr tricky/impossible to implement since functions are
+	//strict in SuperCollider.
+
+	flatten {
+		^this.head.append({ this.tail.flatten })
+	}
+
+	transpose {
+		^if( head.isEmpty ) {
+			this.tail.transpose
+		} {
+			LazyListCons( this.collect( _.head ), { this.collect( _.tail ).transpose } )
+		}
+	}
+
 	zip { |that|
 		var f = { |a,b|
 			if( (a.isEmpty) || (b.isEmpty) ) {
@@ -230,13 +251,9 @@ LazyListCons : LazyList {
 
 	//can't use ++ with LazyListEmpty
 	append { |that|
-		var v = that.value; //append is supposed to be lazy on the list to append,
-							//so either a LazyList was passed or a function was passed.
-		^if( v.isKindOf(LazyListEmpty) ) {
-			this
-		} {
-			^LazyListCons(this.head, { this.tail.append(v) } )
-		}
+		//append is supposed to be lazy on the list to append,
+		//so either a LazyList was passed or a function was passed.
+		^LazyListCons(this.head, { this.tail.append(that.value) } )
 	}
 
 	|+| { |that|
@@ -293,6 +310,10 @@ LazyListEmpty : LazyList {
 	*foldl { |start,f|
 		^start
 	}
+
+	*flatten { }
+
+	*transpose { }
 
 }
 
