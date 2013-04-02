@@ -175,6 +175,14 @@ LazyListCons : LazyList {
 		}
 	}
 
+	takeWhile { |predicate|
+		^if( predicate.( head ) ) {
+			LazyListCons( head, this.tail.takeWhile(predicate) )
+		} {
+			LazyListEmpty
+		}
+	}
+
 	drop { |n|
 		^if(n<=0) {
 			this
