@@ -137,6 +137,12 @@ EventSource : EventStream {
         ^FlatCollectedES( this, f, initialState)
     }
 
+	//behaves like initial state until an event arrives then behaves like the
+	//signals returned by f
+	switchSig { |f, initialState|
+		^FlatCollectedFPSignalHybrid( this, f, initialState)
+    }
+
     | { |otherES|
         ^MergedES( this, otherES )
     }
@@ -250,18 +256,24 @@ EventSource : EventStream {
         ^this.select(_.isDefined).collect(_.get)
     }
 
-    storePrevious {
-        ^this.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) })
+    storePrevious { |init = 0.0|
+        ^this.inject( Tuple2(init,init), { |state,x| Tuple2( state.at2, x ) })
     }
 
-    storePreviousWithT {
-        ^this.inject( Tuple2( Tuple2(0.0,0.0), Tuple2(0.0,0.0) ),
+    storePreviousWithT {  |init = 0.0|
+        ^this.inject( Tuple2( Tuple2(0.0, init), Tuple2(0.0, init) ),
             { |state,x| Tuple2( state.at2, Tuple2( Process.elapsedTime, x ) ) })
     }
 
     storeWithT {
         ^this.collect( Tuple2(Process.elapsedTime,_) )
     }
+
+
+    onlyChanges {
+		^this.storePrevious.select{ |tup| tup.at1 != tup.at2 }.collect(_.at2)
+    }
+
 
     linlin { |inMin, inMax, outMin, outMax, clip=\minmax|
         ^this.collect( _.linlin(inMin, inMax, outMin, outMax, clip) )
