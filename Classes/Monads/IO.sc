@@ -64,6 +64,7 @@ IO{
 
 }
 
+
 + Object {
 
 	putStrLn { ^IO{ postln(this) } }
@@ -108,7 +109,18 @@ IO{
 + NetAddr {
 
     sendMsgIO { |...args|
-        ^IO{ this.sendMsg(args) }
+        ^IO{ this.sendMsg(*args) }
     }
+
+	sendBundleIO { |...args|
+		^IO{ this.sendBundle(*args) };
+	}
 }
+
++ Node {
+	setIO { arg ... args;
+		server.sendMsgIO(15, nodeID, *(args.asOSCArgArray));  //"/n_set"
+	}
+}
+
 
