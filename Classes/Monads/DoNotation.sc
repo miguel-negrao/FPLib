@@ -47,6 +47,7 @@ Do( x <- expr1; let a1 = expr2; let a2 = expr3; ...rest ) -> expr1 >>= { |x| var
 
 DoNotation {
     classvar <>debug = false;
+	classvar <lastEval;
 
     *optionToValidation { |o, string|
         ^o.match({|x| x.success },{ string.fail })
@@ -275,7 +276,7 @@ DoNotation {
     //returns Success( string ) or Failure
     *processString { |string| //string is Validation[String,String]
         var starts = string.findAll("Do(") ? [];
-        ^if( starts.size == 0 ) {
+        var result = if( starts.size == 0 ) {
             string.success;
         } {
             var preends = starts.collect{ |i|
@@ -333,7 +334,9 @@ DoNotation {
                     };
                 }
             }
-        }
+        };
+		lastEval = result;
+		^result
 
     }
 
@@ -404,5 +407,13 @@ DoNotation {
         thisProcess.interpreter.preProcessor = nil;
         Unit
     }
+
+	*debugWindow {
+		var t = TextView();
+		var b = Button().action_{ DoNotation.lastEval.collect{ |x| t.string_(x) } };
+		Window().layout_(
+			VLayout(t,b)
+		).front
+	}
 
 }
