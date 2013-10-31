@@ -27,7 +27,7 @@
 	}
 
     remoteAtI { arg index;
-        ^this.copy.remoteAt(index)
+        ^this.copy.removeAt(index)
     }
 
     addI { arg item;
