@@ -2,11 +2,20 @@ TITLE::Functional Reactive Programming
 summary:: Overview of Functional Reactive Programming with the FP quark.
 categories:: FP
 
-Functional Reactive Programming (FRP) deals with with Event Processing, data flow and propagation of change. Events come in while the program is running, most often, at unpredictable times and should be processed and routed to multiple destinations. We can describe these dataflow connections as a network, connecting inputs to outputs. The network itself is functional, i.e., it's formed by chaining functions which do not present any visible state to the user and no not cause side-effects (posting, chainging synths, changing outside variables, etc). 
+Functional Reactive Programming (FRP) deals with with Event Processing, data flow and propagation of change. Events come in while the program is running, most often, at unpredictable times and should be processed and routed to multiple destinations. We can describe these dataflow connections as a network, connecting inputs to outputs. The network itself is functional, i.e., it's formed by chaining functions which do not present any visible state to the user and no not cause side-effects (posting, chainging synths, changing outside variables, etc).
 
 IMAGE::network-1.png::
 
-The FP quark implementation of FRP is based on link::http://reactive-web.co.cc##reactive-web::, a scala FRP library, which is in turn inspired by other libraries. Under the hood it uses observers, but it automates the removal of the observer from the observers list. 
+The FP quark implementation of FRP is based on link::http://reactive-web.co.cc##reactive-web::, a scala FRP library, which is in turn inspired by other libraries. Under the hood it uses observers, but it automates the removal of the observer from the observers list.
+
+The key points to keep in mind regarding FRP are:
+
+list::
+# FPSignals and EventStreams represent events that can happen at any time.
+# Signals are continuous (they have a "now" value) while event streams are discrete (no "now" value).
+# An event network connects inputs (MIDI, GUI, OSC, timer, etc) to outputs (set argument to a synth, draw on screen, etc) via signals and event streams.
+# signals and event streams when placed in an event network are automatically connected to inputs and outputs when the network is compiled or started and are automatically disconnected when the network is stopped. There is no need for explicit registration and de-registration of callbacks.
+::
 
 SECTION:: EventStreams: Time-ordered sequences of discrete events
 
@@ -106,7 +115,7 @@ x.value_(5.3);
 You can use the same methods as with EventSource for adding and removing actions: do, stopDoing, doDef.
 
 
-EventStreams and FPSignals are two reciprocal representations. 
+EventStreams and FPSignals are two reciprocal representations.
 
 You can transform an EventStream into an FPSignal by using 'hold' with an initial value:
 
@@ -269,7 +278,7 @@ code::
 
 In other programming languages it is called flatMap or bind (It is an instance of the famous Monad).
 
-In the same way doing 
+In the same way doing
 
 code::
 (
@@ -315,7 +324,7 @@ x.fire(1);
 y.fire(2);//only this one causes w to fire
 ::
 
-This is analogous to 
+This is analogous to
 
 { |a,b| a+b } .(1,2)
 
@@ -326,7 +335,7 @@ code::
 x = EventSource();
 y = EventSource();
 z = EventSource();
-w = { |x,y,z| x + y + z } <%> x <*> y <*> z; 
+w = { |x,y,z| x + y + z } <%> x <*> y <*> z;
 w.do( postln(_) );
 )
 //run each at a time
@@ -335,7 +344,7 @@ y.fire(3.0);
 z.fire(1.0); //only this one causes w to fire
 ::
 
-This is analogous to 
+This is analogous to
 code::
 f = { |x,y,z| x + y + z };
 f.(9.0, 3.0, 1.0)
@@ -400,7 +409,7 @@ If you want to disconnect only some branches you can use emphasis::remove:: :
 
 
  image::remove-4.png::
- 
+
  code::
  (
 x = EventSource();
@@ -442,7 +451,7 @@ Muting an EventStream based on the value of another EventStream:
 code::
 (
 a = EventSource();
-~mute = EventSource(); 
+~mute = EventSource();
 ~emitNothing = NothingES();
 ~result = ~mute >>= { |v|
 	if( v == 0.0 ) {
@@ -468,20 +477,20 @@ Choose the output from a group of EventStreams based on a value of a selector Ev
 code::
 (
 ~streams = 4.collect{ EventSource() };
-~selector = EventSource(); 
+~selector = EventSource();
 ~result = ~selector >>= { |i|
 	~streams[i]
 };
 ~result.do{ |v| postln("I got this: "++v) };
 )
 
-~selector.fire(0); 
+~selector.fire(0);
 ~streams[0].fire(1)
 ~streams[1].fire(1)
 ~streams[2].fire(1)
 ~streams[3].fire(1)
 
-~selector.fire(2); 
+~selector.fire(2);
 ~streams[0].fire(1)
 ~streams[1].fire(1)
 ~streams[2].fire(1)
@@ -502,7 +511,7 @@ code::
 	["1", Color.black, Color.red],
 ]);
 ~knob = ~guiKnob.esFromGUI;
-~button = ~guiButton.esFromGUI; 
+~button = ~guiButton.esFromGUI;
 w = Window(bounds:Rect(200,200,200,100)).layout_(
 	 VLayout(
 		HLayout( ~guiKnob, ~guiResult  ),
