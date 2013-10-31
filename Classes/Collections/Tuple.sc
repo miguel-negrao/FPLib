@@ -18,6 +18,14 @@
     It is possible to add more type instances by adding the functions
     directly to the dict from the initClass function of the class that
     one wants to make an instance of some type class.
+
+class variable access is faster then array access
+
+a = [0];
+b = Point(0,0)
+bench{ 10000000.do{ a.at(0) } } //24% slower
+bench{ 10000000.do{ b.x } }
+
 */
 
 //Immutable Tuples
@@ -70,6 +78,16 @@ Tuple2{
 //Monoid
     |+| { |b| ^Tuple2( this.at1 |+| b.at1, this.at2 |+| b.at2 ) }
     zero { |class1, class2| Tuple2( class1.zero, class2.zero) }
+
+	//math
+	+ { |b| b = b.asTuple2; ^Tuple2( this.at1 + b.at1, this.at2 + b.at2 ) }
+	- { |b| b = b.asTuple2; ^Tuple2( this.at1 - b.at1, this.at2 - b.at2 ) }
+	* { |b| b = b.asTuple2; ^Tuple2( this.at1 * b.at1, this.at2 * b.at2 ) }
+	/ { |b| b = b.asTuple2; ^Tuple2( this.at1 / b.at1, this.at2 / b.at2 ) }
+
+	asTuple2{
+		^this
+	}
 }
 
 Tuple3{
@@ -140,4 +158,24 @@ Tuple4{
 //Monoid
     |+| { |b| ^Tuple3( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3, this.at4 |+| b.at4 ) }
     zero { |class1, class2, class3, class4| Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
+}
+
++ SimpleNumber {
+
+	asTuple2{
+		^Tuple2(this, this)
+	}
+
+	asTuple3{
+		^Tuple2(this, this, this)
+	}
+
+	asTuple4{
+		^Tuple2(this, this, this, this)
+	}
+
+	asTuple5{
+		^Tuple2(this, this, this, this, this)
+	}
+
 }
