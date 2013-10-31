@@ -38,6 +38,10 @@ FPSignal {
 		FPSignal.buildFlatCollect = FPSignal.buildFlatCollect.collect( _.orElse( Some(this) ) );
 	}
 
+	asFPSignal {
+		^this
+	}
+
 	now { }
 
 	changes { } //returns EventStream
@@ -114,7 +118,7 @@ FPSignal {
     }
 
     changed {
-        ^this.storePrevious.collect{ |tup| tup.at1 != tup.at2 }
+		^this.storePrevious.collect{ |tup| tup.at1 != tup.at2 }
     }
 
     //time related signal methods
@@ -160,15 +164,45 @@ FPSignal {
         }
     }
 
-	//to be used on time signal
+	//to be used on a time signal
     elapsedTime {
          ^this.delta.inject( 0, { |elapsedT, delta|
             elapsedT + delta
 		})
     }
 
-	//
-	//switchLater { |tSig, laterSig, seconds|
+
+	//behaves like this signal until switchtime
+	//from then on behaves like laterSig
+	switchLater { |tSig, laterSig, switchTime|
+		//need to identify the first node in the chain to remove it later
+		var r = tSig
+		.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) });
+
+		^r.collect{ |tup| tup.at2-tup.at1 }
+		.inject( 0, { |elapsedT, delta|
+            elapsedT + delta
+		})
+		//\counting, \over, \done
+		.inject(\counting, { |st,x|
+			switch(st)
+			{\counting} {
+				if(x>switchTime){\over}{\counting}
+			}
+			{ \over }{ \done }
+			{ \done } { \done }
+		})
+		.changes
+		.select( _  == \over )
+		.switchSig({
+			//I'm going to ask for forgivness and do a side-effect here...
+			//since this is a one time only event we don't need to do all the
+			//processing after this point
+			r.remove;
+			laterSig
+		}, this)
+
+	}
 
 
     //*************************
@@ -206,19 +240,19 @@ FPSignal {
     }
 
     + { |signal|
-        ^(_+_) <%> this <*> signal
+        ^(_+_) <%> this <*> signal.asFPSignal
     }
 
     * { |signal|
-        ^(_*_) <%> this <*> signal
+        ^(_*_) <%> this <*> signal.asFPSignal
     }
 
     / { |signal|
-        ^(_/_) <%> this <*> signal
+        ^(_/_) <%> this <*> signal.asFPSignal
     }
 
     - { |signal|
-        ^(_-_) <%> this <*> signal
+        ^(_-_) <%> this <*> signal.asFPSignal
     }
 
 	//missing this combinator:
@@ -375,6 +409,70 @@ FlatCollectedFPSignal : ChildFPSignal {
     }
 }
 
+//the thing causing the switching is an event source instead of signal
+//initial signal must be provided !
+FlatCollectedFPSignalHybrid : ChildFPSignal {
+
+    *new { |parent, f, initialSignal|
+        ^super.new.init(parent, f, initialSignal)
+    }
+
+    init { |parent, f, initialSignalArg|
+    	var initSignal, initialState;
+        var thunk = { |x|
+        	//("thunk was called with event "++x).postln;
+            now = x;
+            changes.fire( x );
+        };
+		initSignal = initialSignalArg;
+		initialState = Tuple2(None(),initSignal);
+
+        initSignal.changes !? _.addListener(thunk);
+        this.initChildFPSignal(parent, { |event, tuple|
+             var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
+             //start of the old created chain
+             lastSigStart = tuple.at1;
+             //end of old created chain
+             lastSigEnd = tuple.at2;
+             //stop receiving events from old chain
+             lastSigEnd.changes !? _.removeListener( thunk );
+              //disconnect the old chain from it's start point
+             lastSigStart.do{ |x| x.tryPerform(\remove) };
+             //let's discover where the new chain starts
+             FPSignal.buildFlatCollect = Some(None());
+             nextSigEnd = f.(event);
+             //if a new EventSource was created the first one created will be here:
+             nextSigStart = FPSignal.buildFlatCollect.get;
+             //reset the global variable
+             FPSignal.buildFlatCollect = None();
+             thunk.( nextSigEnd.now );
+             //start receiving events from new EventStream
+             nextSigEnd.changes !? _.addListener( thunk );
+             //store the new chain
+             Tuple2(nextSigStart, nextSigEnd);
+
+        }, initialState, { |x| x.at2.now })
+    }
+
+	initChildFPSignal { |p,h, initialState, initialFunc|
+    	state = initialState;
+    	now = initialFunc.( initialState );
+        changes = SignalChangeES();
+        parent = p;
+        handler = h;
+        listenerFunc = { |value|
+         	//("listnerFunc called with value: "++value).postln;
+        	state = handler.value(value, state)
+        };
+        parent.addListener( listenerFunc )
+    }
+
+    remove {
+		parent.removeListener( listenerFunc );
+		^Unit
+    }
+}
+
 FoldedFPSignal : ChildFPSignal {
 
     *new { |parent, initial, f|
@@ -453,6 +551,14 @@ Var : Val {
 		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
 		slider.value_(spec.unmap(this.value));
 		^slider
+	}
+
+}
+
++ Object {
+
+	asFPSignal {
+		^Val( this )
 	}
 
 }
