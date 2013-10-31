@@ -93,6 +93,29 @@ code::
 
 ~slider = Slider().value_(0.3).front;
 //network
+~networkDescription = ENDef({
+    //inputs
+    var slSig = ~slider.enIn;
+    var r = slSig.collect(_*100);
+
+    r.collect{ |v| putStrLn(v) }.enOut;
+
+});
+//compile network
+~network = EventNetwork(~networkDescription, true);
+
+//start network
+~network.start;
+
+)
+::
+
+Pure functional style:
+code::
+(
+
+~slider = Slider().value_(0.3).front;
+//network
 ~networkDescription =
 	//inputs
 	~slider.asENInput >>= { |x|
@@ -109,28 +132,7 @@ code::
 ~network.pause;
 ::
 
-code::
-(
-~slider = Slider();
-//network
-~networkDescription = Do(
-	x <- ~slider.asENInput;
-	let r = x.collect(_*100);
-	//outputs
-	r.collect{ |v| putStrLn(v) }.reactimate
-);
 
-//compile network
-~network = EventNetwork(~networkDescription);
-//start network
-Do(
-	~network.actuate;
-	~slider.front;
-);
-)
-
-~network.pause;
-::
 
 code::
 (

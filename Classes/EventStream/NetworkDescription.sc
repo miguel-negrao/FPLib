@@ -26,8 +26,17 @@ EventNetwork {
 
 	//networkDescription : Writer( Unit, Tuple3([IO(IO())], [EventStream[IO[Unit]]], [IO] ) )
 	//                                     eventHandlers         reactimates        IOLater
-	*new{ |networkDescription|
-		var tuple = networkDescription.w;
+	*new{ |networkDescription, disableOnCmdPeriod = false|
+		var tuple = if(networkDescription.class == Writer){
+			networkDescription.w
+		}{
+			if(networkDescription.class == ENDef){
+				networkDescription.resultWriter.w
+			} {
+				Error("EventNetwork: networkDescription must be either of class Writer or ENDef").throw
+			}
+
+		};
 
 		//reactimates
 		var finalIOES = tuple.at2.reduce('|');
@@ -49,19 +58,41 @@ EventNetwork {
         var actuate = doFinalIO >>=| registerIO >>=| iosLater;
         var pause = stopDoingFinalIO >>=| unregisterIO;
 
-        ^super.newCopyArgs( actuate, pause )
+		var return = super.newCopyArgs( actuate, pause );
+
+		if( disableOnCmdPeriod ) {
+			CmdPeriod.add(return)
+		};
+
+		^return
 	}
+
 
 	*returnDesc { |a| ^Writer( a, Tuple3([],[],[]) ) }
     *returnUnit { ^this.returnDesc(Unit) }
 
-	actuateNow { actuate.unsafePerformIO; ^Unit }
-	pauseNow { pause.unsafePerformIO; ^Unit }
-    /*
-    addAction { |f| } where is a function to call with the new event whenever
-    a new event arrives.
-    removeAction is an action to call to stop sending events
-    */
+	actuateNow { actuate.unsafePerformIO }
+	pauseNow { pause.unsafePerformIO }
+
+	cmdPeriod { this.pauseNow }
+
+	//pick your favorite sytax:
+	run { |bool|
+		if( bool ) {
+			this.actuateNow
+		} {
+			this.pauseNow
+		}
+	}
+
+	start {
+		this.actuateNow
+	}
+
+	free {
+		this.pauseNow
+	}
+
 	*makeES { |addAction, removeAction|
         var addHandler;
 		var es = EventSource();
@@ -75,92 +106,18 @@ EventNetwork {
 
 }
 
-ENTimer {
-    var <delta, <maxTime;
-    var <>action; //Option[Function]
-    var <task, t = 0;
++ Object {
 
-    *new { |delta = 0.1, maxTime = inf|
-        ^super.newCopyArgs(delta, maxTime).init;
+	sinkValue { |signal|
+    	^signal.collect{ |v| IO{ defer{ this.value_(v) } } }.reactimate;
     }
 
-    init {
-        task = Task({
-            inf.do{
-                delta.wait;
-                if( t >= maxTime) {
-                    task.stop;
-                };
-                t = t + delta;
-                action.do{ |f| f.(t) };
-            }
-        });
+	sink { |signal, method|
+    	^signal.collect{ |v| IO{ defer{ this.perform(*v) } } }.reactimate;
     }
 
-    start {
-        ^IO{ t = 0; task.start }
-	}
-
-	stop {
-        ^IO{ task.stop };
-	}
-
-	pause {
-        ^IO{ task.pause }
-
-	}
-
-	resume {
-        ^IO{ task.resume }
-	}
-	actions {
-        ^[ { |action| this.action_( Some(action) ) }, { this.action_(None()) } ]
-	}
-
-    asENInput {
-        ^EventNetwork.makeES( *this.actions )
+	*sink { |signal, method|
+    	^signal.collect{ |v| IO{ defer{ this.perform(*v) } } }.reactimate;
     }
-
-}
-
-FRPGUICode {
-
-	*makeENInput { |gui|
-		var addHandler;
-		var es = Var(gui.value);
-		var action = { |sl| es.value_( sl.value ) };
-		addHandler = IO{
-			gui.addAction(action);
-			IO{ gui.removeAction(action)
-		} };
-		^Writer( es, Tuple3([addHandler],[],[IO{ action.value(gui) }]) )
-	}
-
-}
-
-+ QView {
-
-	asENInput {
-		^FRPGUICode.makeENInput(this)
-	}
-}
-
-/*+ SCView {
-
-	asENInput {
-		^FRPGUICode.makeENInput(this)
-	}
-
-}*/
-
-+ MKtlElement {
-
-	asENInput {
-        var es = Var(0.0);
-		var func = { |v| es.value_(v) };
-		var internalES = this.eventSource;
-		var addHandler = IO{ internalES.do(func); IO{ internalES.stopDoing(func) } };
-		^Writer( es, Tuple3([addHandler],[],[]) )
-	}
 
 }
