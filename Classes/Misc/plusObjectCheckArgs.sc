@@ -3,7 +3,7 @@
 	*checkArgs{ |class, method, args, types|
 		[args, types].flopWith{ |aarg, type|
 			if(aarg.isKindOf(type).not) {
-				Error("%.% - Type mismatch: expected object of class % but got this: %".format(class, method, type, aarg) ).throw
+				Error("%.% - Type mismatch: expected object of class % but got: %".format(class, method, type, aarg) ).throw
 			}
 		}
 	}
