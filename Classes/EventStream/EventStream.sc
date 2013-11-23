@@ -29,7 +29,7 @@
 EventStream{
 
 	classvar <doFuncs;
-	classvar <>debug = false;
+	classvar <>debugInternal = false;
 	classvar <>buildFlatCollect;
 
 	*initClass {
@@ -128,6 +128,10 @@ EventSource : EventStream {
         ^FoldedES(this, initial, f);
     }
 
+	injectF { |initial|
+        ^FoldedFES(this, initial);
+    }
+
     >>= { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
@@ -192,8 +196,12 @@ EventSource : EventStream {
 	    //copy is used here because listerFuncs might mutate the listeners variable
 	    //change this to a FingerTree in the future.
         listeners.copy.do( _.value(event) );
-        if(EventStream.debug) { postln("-> "++this++" : "++this.hash++" : "++event)};
+        if(EventStream.debugInternal) { postln("-> "++this++" : "++this.hash++" : "++event)};
         ^Unit
+    }
+
+	debug { |string|
+        ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
     }
 
     fireIO { |event|
@@ -273,6 +281,36 @@ EventSource : EventStream {
     onlyChanges {
 		^this.storePrevious.select{ |tup| tup.at1 != tup.at2 }.collect(_.at2)
     }
+
+	paged { |pageNumES, numPages, default= 0.0|
+		var check = this.checkArgs(\EventSource, \paged,
+			[pageNumES, numPages, default], [EventSource, SimpleNumber, SimpleNumber]);
+		var merged = this.collect{ |x| T(\value, x) } | pageNumES.collect{ |x| T(\newPage, x) };
+		var process = merged.inject( (pageNum:0, values: (default ! numPages), newValue:None(), pageChange:None() ),
+			{ |state, x|
+				//"state : % x: %".format(state,x).postln;
+				if( x.at1 == \value ) {
+					var val = x.at2;
+					var page = state.at(\pageNum);
+					(pageNum: state.pageNum, values: state.at(\values).put(page, val),
+						newValue: Some( T(page, val) ), pageChange:None() )
+				} {
+					if( state.pageNum != x.at2 ) {
+						(pageNum: x.at2, values: state.at(\values),
+							newValue: None(), pageChange: Some( state.at(\values).at(x.at2) ) )
+					} {
+						state
+					}
+				}
+			}
+		);
+		//var d1 = process.enDebug("process");
+		var pageChangeES = process.collect(_.at(\pageChange)).selectSome;
+		var pages = numPages.collect{ |n|
+			process.select{ |x| x.at(\newValue).collect{ |x| x.at1 == n }.getOrElse(false) }.collect{ |x| x.at(\newValue).get.at2 }
+		};
+		^T(pages, pageChangeES )
+	}
 
 
     linlin { |inMin, inMax, outMin, outMax, clip=\minmax|
@@ -407,6 +445,21 @@ FoldedES : ChildEventSource {
              this.fire( next );
              next
         })
+    }
+}
+
+FoldedFES : ChildEventSource {
+
+    *new { |parent, initial|
+        ^super.new(initial).init(parent)
+    }
+
+    init { |parent|
+		this.initChildEventSource(parent, { |event, state|
+			var next = event.(state);
+			this.fire( next );
+			next
+		})
     }
 }
 

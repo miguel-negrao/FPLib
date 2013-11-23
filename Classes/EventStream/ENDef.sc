@@ -38,6 +38,10 @@ ENDef {
 		ENDef.appendToResult( this.sink(signal) );
     }
 
+	enSinkValue { |signal|
+		ENDef.appendToResult( this.sinkValue(signal) );
+	}
+
 }
 
 + FPSignal {
@@ -48,6 +52,18 @@ ENDef {
 
 	withKey { |key|
 		^this.collect{ |v| [key,v] }
+	}
+
+	enDebug { |string|
+		ENDef.appendToResult( this.debug(string) )
+	}
+
+}
+
++ EventStream {
+
+	enOut {
+		ENDef.appendToResult( this.reactimate );
 	}
 
 	enDebug { |string|
