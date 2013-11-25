@@ -34,6 +34,10 @@ ENDef {
 		^ENDef.appendToResult( this.asENInput );
 	}
 
+	enInES {
+		^ENDef.appendToResult( this.asENInputES );
+	}
+
 	enSink { |signal|
 		ENDef.appendToResult( this.sink(signal) );
     }

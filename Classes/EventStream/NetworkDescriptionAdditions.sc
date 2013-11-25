@@ -74,6 +74,17 @@ FRPGUICode {
 		^Writer( es, Tuple3([addHandler],[],[IO{ action.value(gui) }]) )
 	}
 
+	*makeENInputES { |gui|
+		var addHandler;
+		var es = EventSource();
+		var action = { |sl| es.fire( sl.value ) };
+		addHandler = IO{
+			gui.addAction(action);
+			IO{ gui.removeAction(action)
+		} };
+		^Writer( es, Tuple3([addHandler],[],[]) )
+	}
+
 }
 
 + Node {
@@ -108,6 +119,10 @@ FRPGUICode {
 
 	asENInput {
 		^FRPGUICode.makeENInput(this)
+	}
+
+	asENInputES {
+		^FRPGUICode.makeENInputES(this)
 	}
 }
 
