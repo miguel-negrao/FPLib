@@ -283,31 +283,43 @@ EventSource : EventStream {
     }
 
 	paged { |pageNumES, numPages, default= 0.0|
+		//typecheck
 		var check = this.checkArgs(\EventSource, \paged,
 			[pageNumES, numPages, default], [EventSource, SimpleNumber, SimpleNumber]);
-		var merged = this.collect{ |x| T(\value, x) } | pageNumES.collect{ |x| T(\newPage, x) };
-		var process = merged.inject( (pageNum:0, values: (default ! numPages), newValue:None(), pageChange:None() ),
-			{ |state, x|
-				//"state : % x: %".format(state,x).postln;
-				if( x.at1 == \value ) {
-					var val = x.at2;
-					var page = state.at(\pageNum);
-					(pageNum: state.pageNum, values: state.at(\values).put(page, val),
-						newValue: Some( T(page, val) ), pageChange:None() )
+
+		var valueIn = this.collect{ |x|
+			{ |state|
+				var page = state.at(\pageNum);
+				(pageNum: state.pageNum, values: state.at(\values).put(page, x),
+						newValue: Some( T(page, x) ), pageChange:None() )
+			}
+		};
+
+		var pageChange = pageNumES.collect{ |n|
+			{ |state|
+				if( state.pageNum != n ) {
+					(pageNum: n, values: state.at(\values),
+						newValue: None(), pageChange: Some( state.at(\values).at(n) ) )
 				} {
-					if( state.pageNum != x.at2 ) {
-						(pageNum: x.at2, values: state.at(\values),
-							newValue: None(), pageChange: Some( state.at(\values).at(x.at2) ) )
-					} {
-						state
-					}
+					state
 				}
 			}
+		};
+
+		var process = valueIn.merge(pageChange).injectF(
+			(pageNum:0, values: (default ! numPages), newValue:None(), pageChange:None() )
 		);
+
 		//var d1 = process.enDebug("process");
 		var pageChangeES = process.collect(_.at(\pageChange)).selectSome;
 		var pages = numPages.collect{ |n|
-			process.select{ |x| x.at(\newValue).collect{ |x| x.at1 == n }.getOrElse(false) }.collect{ |x| x.at(\newValue).get.at2 }
+			process
+			.select{ |x|
+				x.at(\newValue)
+				.collect{ |x| x.at1 == n }
+				.getOrElse(false)
+
+			}.collect{ |x| x.at(\newValue).get.at2 }
 		};
 		^T(pages, pageChangeES )
 	}
