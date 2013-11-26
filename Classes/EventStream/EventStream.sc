@@ -290,7 +290,7 @@ EventSource : EventStream {
 		var valueIn = this.collect{ |x|
 			{ |state|
 				var page = state.at(\pageNum);
-				(pageNum: state.pageNum, values: state.at(\values).put(page, x),
+				(pageNum: page, values: state.at(\values).put(page, x),
 						newValue: Some( T(page, x) ), pageChange:None() )
 			}
 		};

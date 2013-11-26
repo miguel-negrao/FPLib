@@ -26,6 +26,50 @@ b = Point(0,0)
 bench{ 10000000.do{ a.at(0) } } //24% slower
 bench{ 10000000.do{ b.x } }
 
+mutation of array is faster then constructing new Tuple
+
+
+x = [1,2,3]
+(
+bench{
+1000000.collect{
+	x[1]
+}
+}
+)
+//0.27262902259827
+
+//change
+bench{
+1000000.do{
+	x[1] =4
+}
+}
+//0.10011911392212
+
+
+
+
+x = T(1,2,3);
+
+//access
+(
+bench{
+1000000.collect{
+	x.at2
+}
+}
+)
+//0.18798518180847
+
+//change
+bench{
+1000000.do{
+	x.at2 = 4
+}
+}
+//0.3977358341217
+
 */
 
 //Immutable Tuples
