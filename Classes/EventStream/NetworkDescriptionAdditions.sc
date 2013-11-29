@@ -100,7 +100,7 @@ FRPGUICode {
 
 + OSCFunc {
 
-    *asENInput { |path, srcID, recvPort, argTemplate, dispatcher|
+	*asENInputES { |path, srcID, recvPort, argTemplate, dispatcher|
         var es = EventSource();
         var addHandler = IO{
             var f = { |msg| es.fire(msg) };
@@ -110,8 +110,22 @@ FRPGUICode {
         ^Writer( es, Tuple3([addHandler],[],[]) )
     }
 
-	*enIn { |path, srcID, recvPort, argTemplate, dispatcher|
-		^ENDef.appendToResult( this.asENInput(path, srcID, recvPort, argTemplate, dispatcher) );
+	*asENInput { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
+		var es = Var(initialValue);
+        var addHandler = IO{
+            var f = { |msg| es.value_(msg) };
+            var osc = OSCFunc(f, path, srcID, recvPort, argTemplate, dispatcher);
+			IO{ osc.free }
+		};
+        ^Writer( es, Tuple3([addHandler],[],[]) )
+    }
+
+	*enIn { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
+		^ENDef.appendToResult( this.asENInput(path, srcID, recvPort, argTemplate, dispatcher, initialValue) );
+	}
+
+	*enInES{ |path, srcID, recvPort, argTemplate, dispatcher|
+		^ENDef.appendToResult( this.asENInputES(path, srcID, recvPort, argTemplate, dispatcher) );
 	}
 }
 
@@ -138,9 +152,15 @@ FRPGUICode {
 
 	asENInput {
         var es = Var(0.0);
-		var func = { |v| es.value_(v) };
-		var internalES = this.eventSource;
-		var addHandler = IO{ internalES.do(func); IO{ internalES.stopDoing(func) } };
+		var func = { |v| es.value_(v.value) };
+		var addHandler = IO{ this.addAction(func); IO{ this.removeAction(func) } };
+		^Writer( es, Tuple3([addHandler],[],[]) )
+	}
+
+	asENInputES {
+		var es = EventSource();
+		var func = { |v| es.fire(v.value) };
+		var addHandler = IO{ this.addAction(func); IO{ this.removeAction(func) } };
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
