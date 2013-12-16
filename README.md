@@ -8,8 +8,6 @@ Instalation
 
 Move this folder to the SuperCollider 'Extensions' folder.
 
-Dependencies: UnitTesting quark.
-
 Overview
 ========
 
@@ -92,6 +90,10 @@ A monad for constructing the event processors graph is available which is compil
 ```
 
 Unfortunatelly we can't assign it to a type alias in SuperCollider (perhaps will wrap it in another class in the future).
+
+#More info
+
+See the help files, including the reference page and also there are some blog posts relating to FP Lib at http://www.friendlyvirus.org/miguelnegrao/category/code/.
 
   
 
