@@ -1,4 +1,29 @@
+INSTANCEMETHODS::
 
+subsection:: Extensions by FPLib
+
+method::mouseClicksENInputES
+event stream of mouse clicks (on mouse ups).
+returns:: Writer[EventSource[Unit], A]
+
+method::mouseClicksEnInES
+ENDef version of mouseClicksENInputES
+returns:: EventSource[Unit]
+
+method::mousePosENInput
+FPSignal with mouse position
+returns:: Writer[FPSignal[Point(Int,Int)], A]
+discussion::
+note::
+Must call code::.acceptsMouseOver_(true):: on the view.
+::
+
+method::mousePosEnIn
+ENDef version of mousePosENInput
+returns:: FPSignal[Point(Int,Int)]
+discussion::
+
+code::
 //mouse position
 (
 w = Window().acceptsMouseOver_(true).front;
@@ -10,20 +35,9 @@ x = EventNetwork(ENDef({
 
 x.start
 )
+::
 
-// is down
-(
-t = StaticText();
-w = Window().layout_(HLayout(t)).front;
-
-x = EventNetwork(ENDef({
-	var pos = w.view.mouseIsDownEnIn;
-	pos.collect{ |b| IO{ t.string_("mouse is down: "++b) } }.enOut;
-}));
-
-x.start
-)
-
+code::
 //track mouse position
 (
 w = UserView().minWidth_(500).minHeight_(500).acceptsMouseOver_(true).front;
@@ -51,9 +65,10 @@ x = EventNetwork(ENDef({
 
 x.start
 )
+::
 
+code::
 //stamp circles
-
 (
 w = UserView().minWidth_(500).minHeight_(500).acceptsMouseOver_(true).front;
 
@@ -75,23 +90,43 @@ x = EventNetwork(ENDef({
 
 x.start
 )
+::
 
 
-//keyboard
+method::mouseIsDownENInput
+FPSignal with boolean indicating if left button is down
+returns:: Writer[FPSignal[Bool], A]
 
-//keysDown
+method::mouseIsDownEnIn
+ENDef version of mouseIsDownENInput
+returns:: FPSignal[Bool]
+discussion::
+code::
+// is down
 (
 t = StaticText();
 w = Window().layout_(HLayout(t)).front;
 
 x = EventNetwork(ENDef({
-	var pos = w.view.keysDownEnIn;
-	pos.collect{ |b| IO{ t.string_("keys down: "++b) } }.enOut;
+	var pos = w.view.mouseIsDownEnIn;
+	pos.collect{ |b| IO{ t.string_("mouse is down: "++b) } }.enOut;
 }));
 
 x.start
 )
+::
 
+
+
+method::keyDownENInputES
+Event source with latest typed key on keyboard.
+returns:: Writer[EventSource[Char], A]
+
+method::keyDownEnInES
+ENDef version of keyDownENInputES
+returns:: EventSource[Char]
+discussion::
+code::
 //keyDown
 (
 t = StaticText();
@@ -104,4 +139,29 @@ x = EventNetwork(ENDef({
 
 x.start
 )
+::
 
+
+
+method::keysDownENInput
+FPSignal with list of currently pressed keys.
+returns:: Writer[FPSignal[[Char]], A]
+
+method::keysDownEnIn
+ENDef version of keysDownENInput
+returns:: FPSignal[[Char]]
+discussion::
+code::
+//keysDown
+(
+t = StaticText();
+w = Window().layout_(HLayout(t)).front;
+
+x = EventNetwork(ENDef({
+	var pos = w.view.keysDownEnIn;
+	pos.collect{ |b| IO{ t.string_("keys down: "++b) } }.enOut;
+}));
+
+x.start
+)
+::
