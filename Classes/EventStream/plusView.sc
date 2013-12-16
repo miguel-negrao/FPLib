@@ -22,41 +22,102 @@
 
 + QView {
 
-	mouseDownES {
+	mouseClicksENInputES {
 		var es = EventSource();
-		this.mouseDownAction_({ |view, x, y, modifiers, buttonNumber, clickCount|
-			es.fire( view, x, y, modifiers, buttonNumber, clickCount );
-		});
-		^es
+		var f = {
+			es.fire( Unit );
+		};
+		var addHandler = IO{
+			this.mouseUpAction = this.mouseUpAction.addFunc(f);
+			IO{ this.mouseUpAction.removeFunc(f) }
+		};
+		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	mouseUpES {
+	mouseClicksEnInES {
+		^ENDef.appendToResult( this.mouseClicksENInputES );
+	}
+
+	mousePosENInput {
+		var sig = Var(Point(0,0));
+		var f = { |view, x, y, modifiers|
+			sig.value_( Point(x, y) );
+		};
+		var addHandler = IO{
+			this.mouseOverAction = this.mouseOverAction.addFunc(f);
+			IO{ this.mouseOverAction.removeFunc(f) }
+		};
+		^Writer( sig, Tuple3([addHandler],[],[]) )
+	}
+
+	mousePosEnIn {
+		^ENDef.appendToResult( this.mousePosENInput );
+	}
+
+	mouseIsDownENInput {
+		var sig = Var( false);
+		var fdown = { |view, x, y, modifiers|
+			sig.value_( true );
+		};
+		var fup = { |view, x, y, modifiers|
+			sig.value_( false );
+		};
+		var addHandler = IO{
+			this.mouseDownAction = this.mouseDownAction.addFunc(fdown);
+			this.mouseUpAction = this.mouseUpAction.addFunc(fup);
+			IO{
+				this.mouseDownAction.removeFunc(fdown);
+				this.mouseUpAction.removeFunc(fup)
+			}
+		};
+		^Writer( sig, Tuple3([addHandler],[],[]) )
+	}
+
+	mouseIsDownEnIn {
+		^ENDef.appendToResult( this.mouseIsDownENInput );
+	}
+
+	keyDownENInputES {
 		var es = EventSource();
-		this.mouseUpAction_({ |view, x, y, modifiers|
-			es.fire( view, x, y, modifiers);
-		});
-		^es
+		var f = { |v, char|
+			es.fire( char );
+		};
+		var addHandler = IO{
+			this.keyDownAction = this.keyDownAction.addFunc(f);
+			IO{ this.keyDownAction.removeFunc(f) }
+		};
+		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	mouseEnterES { }
-	mouseLeaveES { }
-
-    mouseMoveES {
-   		var es = EventSource();
-		this.mouseMoveAction_({ |view, x, y, modifiers|
-			es.fire( Tuple4(view, x, y, modifiers) );
-		});
-		^es
-	}
-	
-	 mouseMoveEN {
-   		^this.mouseMoveES.asENInput
+	keyDownEnInES {
+		^ENDef.appendToResult( this.keyDownENInputES );
 	}
 
-    mouseOverES { }
-    mouseWheelES { }
-    keyDownES { }
-    keyUpES { }
-    keyModifiersChangedES { }
+	keysDownENInput {
+		var sig = Var( []);
+		var fdown = { |view, char|
+			sig.value_( sig.value.add(char) );
+		};
+		var fup = { |view, char|
+			var x = sig.value;
+			x.remove(char);
+			sig.value_( x );
+		};
+		var addHandler = IO{
+			this.keyDownAction = this.keyDownAction.addFunc(fdown);
+			this.keyUpAction = this.keyUpAction.addFunc(fup);
+			IO{
+				this.keyDownAction.removeFunc(fdown);
+				this.keyUpAction.removeFunc(fup)
+			}
+		};
+		^Writer( sig, Tuple3([addHandler],[],[]) )
+	}
+
+	keysDownEnIn {
+		^ENDef.appendToResult( this.keysDownENInput );
+	}
+
+	//TODO, shiftDown, ctrlDown, etc
 
 }

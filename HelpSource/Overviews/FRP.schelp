@@ -2,11 +2,11 @@ TITLE::Functional Reactive Programming
 summary:: Overview of Functional Reactive Programming with the FP quark.
 categories:: FP
 
-Functional Reactive Programming (FRP) deals with with Event Processing, data flow and propagation of change. Events come in while the program is running, most often, at unpredictable times and should be processed and routed to multiple destinations. We can describe these dataflow connections as a network, connecting inputs to outputs. The network itself is functional, i.e., it's formed by chaining functions which do not present any visible state to the user and no not cause side-effects (posting, chainging synths, changing outside variables, etc).
+Functional Reactive Programming (FRP) deals with with Event Processing, data flow and propagation of change.It is a composable/modular way to code event-driven logic. Events come in while the program is running, most often, at unpredictable times and should be processed and routed to multiple destinations. We can describe these dataflow connections as a network, connecting inputs to outputs. The network itself is functional, i.e., it's formed by chaining functions which do not present any visible state to the user and no not cause side-effects (posting, chainging synths, changing outside variables, etc).
 
 IMAGE::network-1.png::
 
-The FP quark implementation of FRP is based on link::http://reactive-web.co.cc##reactive-web::, a scala FRP library, which is in turn inspired by other libraries. Under the hood it uses observers, but it automates the removal of the observer from the observers list.
+The FP quark implementation of FRP is based on link::http://reactive-web.co.cc##reactive-web::, a scala FRP library, which is in turn inspired by other libraries. Under the hood it uses observers, but it automates the removal of the observer from the observers list, it is therefore an alternative to the Observer pattern. It aims to solve some of the issues of the observer pattern such as lack of composability, inversion of control and messy state management.
 
 The key points to keep in mind regarding FRP are:
 
