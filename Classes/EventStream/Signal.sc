@@ -281,6 +281,12 @@ FPSignal {
         //apply a signal with a function to every incoming event
         ^es.collect{ |x| this.now }
     }
+
+	//alias
+	sampleOn { |es|
+        //apply a signal with a function to every incoming event
+        ^es.collect{ |x| this.now }
+    }
 //Monad
     >>= { |f|
         ^FlatCollectedFPSignal( this, f, nil)
