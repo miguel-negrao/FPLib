@@ -1,3 +1,5 @@
+//TODO add multiple options for arg
+
 + Object {
 
 	*checkArgs{ |class, method, args, types|
