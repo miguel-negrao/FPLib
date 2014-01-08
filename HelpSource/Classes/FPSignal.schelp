@@ -123,15 +123,19 @@ y.do(_.postln);
 
 x.value_(100)
 ::
-method::flatCollect
+
+method::switch
 argument::f
 f: A => FPSignal[B]
 discussion::
+
+Implementes event switching.
+
 code::
 (
 x = Var(1);
 y = Var(2);
-z = x >>= { |x| y.collect{ |y| [x,y] } };
+z = x.switch{ |x| y.collect{ |y| [x,y] } };
 z.do(_.postln);
 )
 
@@ -152,6 +156,83 @@ y.do(_.postln);
 x.value_(1);
 x.value_(4);
 x.value_(7)
+)
+::
+
+method::selfSwitch
+switching based on the the signal itself
+argument:: f
+function A -> FPSignal[ T(A, Option[B]) ]
+returns:: FPSignal[A]
+discussion::
+
+Given an initial signal sigA of type FPSignal[ T(A, Option[B]) ], calling selfSwitch on it with a function f that evaluates to another signal sigB of type FPSignal[ T(A, Option[B]) ] will behave like sigA while the value of sigA is T(x, None()). When a value of type T(x,Some(v)) is received the function f is evaluated with v and sigA is switched out, sigB is switched in taking the role of sigA and repeating the procedure ad infinitum. This is a sort of recursive switching.
+
+If this was a function it would have type
+
+FPSignal[ T(A, Option[B]) ] -> ( A -> FPSignal[ T(A, Option[B]) ] ) -> FPSignal[A]
+
+note::
+If the initial signal can be generated from f given an initial value code::initVal:: then we can use for convenience
+
+code::
+f.selfSwitch(initVal)
+::
+
+which is equivalent to
+
+code::
+f.(initVal).selfSwitch(f)
+::
+::
+
+code::
+//resets a counter
+(
+var timer = ENTimer(0.1);
+x = EventNetwork(ENDef{
+
+	var tSig = timer.enIn.hold(0.0);
+
+	var f = { Var(1.0).integral(tSig).collect{ |x|
+		if(x > 5){ T(x,Some(Unit)) }{ T(x,None() ) }
+	} };
+
+	var x = f.().selfSwitch(f);
+
+	x.enDebug("x: ");
+
+},true);
+
+x.start;
+timer.start.unsafePerformIO
+)
+
+//bouncing ball
+(
+var timer = ENTimer(0.1);
+x = EventNetwork(ENDef{
+
+	var tSig = timer.enIn.hold(0.0);
+
+	var ball = { |y0,v0|
+		var ss  = [y0,v0].postln;
+		var v = Var(-9.8).integral(tSig).collect(_+v0);
+		var y = v.integral(tSig).collect(_+y0);
+
+		T(_,_).lift.(y,v).collect{ |tup|
+			if(tup.at1 < 0){ T(tup.at1,Some(tup)) }{ T(tup.at1,None() ) }
+		}
+	};
+
+	var fall = ball.(10,0).selfSwitch({ |tup| ball.(0, tup.at2.neg) });
+
+	fall.enDebug("y: ");
+
+},true);
+
+x.start;
+timer.start.unsafePerformIO
 )
 ::
 

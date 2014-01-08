@@ -132,20 +132,21 @@ EventSource : EventStream {
         ^FoldedFES(this, initial);
     }
 
-    >>= { |f, initialState|
-        ^FlatCollectedES( this, f, initialState)
-    }
-
-    //synonims
     switch { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
 
-	//behaves like initial state until an event arrives then behaves like the
-	//signals returned by f
-	switchSig { |f, initialState|
-		^FlatCollectedFPSignalHybrid( this, f, initialState)
+	//behaves like initSignal until an event arrives then behaves like the
+	//signal returned by f
+	switchSig { |f, initSignal|
+		^FlatCollectedFPSignalHybrid( this, f, initSignal)
     }
+
+	//behaves like f.(initVal) until an event arrives then behaves like the
+	//signal returned by f
+	switchSig2 { |f, initVal|
+		^FlatCollectedFPSignalHybrid( this, f, f.(initVal) )
+	}
 
     | { |otherES|
         ^MergedES( this, otherES )

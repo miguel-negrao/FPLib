@@ -287,22 +287,16 @@ FPSignal {
         //apply a signal with a function to every incoming event
         ^es.collect{ |x| this.now }
     }
-//Monad
-    >>= { |f|
-        ^FlatCollectedFPSignal( this, f, nil)
-    }
 
-    bind { |f, initialState|
-        ^FlatCollectedFPSignal( this, f, initialState)
-    }
 
     switch { |f, initialState|
         ^FlatCollectedFPSignal( this, f, initialState)
     }
 
-    *makePure { |a|
-        ^Var(a)
+	selfSwitch { |f|
+        ^SelfSwitchFPSignal( f, this)
     }
+
 }
 
 SignalChangeES : EventSource {
@@ -414,6 +408,89 @@ FlatCollectedFPSignal : ChildFPSignal {
         }, initialState, { |x| x.at2.now })
     }
 }
+
+SelfSwitchFPSignal : ChildFPSignal {
+
+	*new { |f, initialSignal|
+		^super.new.init(f, initialSignal)
+	}
+
+	init { |f, initSignal|
+		var initialState, register, thunk;
+
+		initialState = Tuple2(None(),initSignal);
+
+		state = initialState;
+
+		now = initSignal.now.at1;
+
+		changes = SignalChangeES();
+
+		parent = initSignal;
+
+		//events to path through to our listeners
+		thunk = { |x|
+			//("thunk was called with event "++x).postln;
+			//first element of tuple carries the actual value
+			var value = x.at1;
+
+		};
+
+		//react to event switch
+		handler = { |event, tuple|
+			var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
+
+			//start of the old created chain
+			lastSigStart = tuple.at1;
+
+			//end of old created chain
+			lastSigEnd = tuple.at2;
+
+			//stop receiving events from old chain
+			lastSigEnd.changes !? _.removeListener( thunk );
+			lastSigEnd.changes !? _.removeListener( listenerFunc );
+
+			//disconnect the old chain from it's start point
+			lastSigStart.do{ |x| x.tryPerform(\remove) };
+
+			//let's discover where the new chain starts
+			FPSignal.buildFlatCollect = Some(None());
+			nextSigEnd = f.(event);
+			//if a new EventSource was created the first one created will be here:
+			nextSigStart = FPSignal.buildFlatCollect.get;
+			//reset the global variable
+			FPSignal.buildFlatCollect = None();
+
+			register.( nextSigEnd );
+
+			parent = nextSigEnd;
+			now = nextSigEnd.now.at1;
+			changes.fire( now );
+
+			//store the new chain
+			Tuple2(nextSigStart, nextSigEnd);
+
+		};
+		listenerFunc = { |value|
+			//("listnerFunc called with value: "++value).postln;
+			var switchEvent = value.at2;
+			if(switchEvent.isDefined) {
+				state = handler.value(switchEvent.get, state);
+			} {
+				var actualVal = value.at1;
+				now = actualVal;
+				changes.fire( actualVal );
+			};
+
+		};
+		register = { |signal|
+			signal.changes.addListener( listenerFunc );
+		};
+		register.( initSignal );
+
+	}
+}
+
 
 //the thing causing the switching is an event source instead of signal
 //initial signal must be provided !
@@ -565,6 +642,14 @@ Var : Val {
 
 	asFPSignal {
 		^Val( this )
+	}
+
+}
+
++ Function {
+
+	selfSwitch { |initArg|
+		^this.value(initArg).selfSwitch(this)
 	}
 
 }
