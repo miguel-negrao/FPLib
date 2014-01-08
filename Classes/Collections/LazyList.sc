@@ -82,6 +82,8 @@ fork{
 
 
 )
+
+Hum, maybe should go from LazyListEmpty to LazyListEmpty() ? this way we can make methods that just use inject, collect, etc without having to add them both to LazyListEmpty and LazyListCons
 */
 
 
@@ -114,6 +116,35 @@ LazyList {
 	asArray { }
 
 	asLazy{ }
+
+	collectAccum { |init, f|
+		^this.foldl(T(init,LazyListEmpty), { |state,x|
+			var at1 = state.at1;
+			var at2 = state.at2;
+			var y = f.(state.at1, x);
+			T(y.at1, state.at2.add(y.at2) )
+		})
+	}
+
+	scan { |init,f|
+		^this.foldl(LazyListCons(init, LazyListEmpty), { |state,x|
+			state.add( f.(state.last,x) )
+		})
+	}
+
+	any { |f|
+		^this.foldl(false, { |state,x|
+			state || f.(x)
+		})
+	}
+
+	includes { |x|
+		^this.any(_ == x)
+	}
+
+	size {
+		^this.foldl(0, _+1)
+	}
 
 	cycle {
 		var f = { this.append({ { f.() } }) };
@@ -211,11 +242,11 @@ LazyListCons : LazyList {
 		^this.head.append({ this.tail.flatten })
 	}
 
-	transpose {
+	flop {
 		^if( head.isEmpty ) {
-			this.tail.transpose
+			this.tail.flop
 		} {
-			LazyListCons( this.collect( _.head ), { this.collect( _.tail ).transpose } )
+			LazyListCons( this.collect( _.head ), { this.collect( _.tail ).flop } )
 		}
 	}
 
@@ -306,6 +337,9 @@ LazyListEmpty : LazyList {
 	*append { |that|
 		^that
 	}
+	*any { ^false }
+	*includes { ^false }
+	*size{ ^0 }
 	*do{ ^Unit }
 	|+| { |that|
 		^this.append(that)
@@ -345,6 +379,7 @@ LazyListEmpty : LazyList {
 }
 
 + Array {
+	lz { ^LazyList.fromArray(this) }
     asLazy { ^LazyList.fromArray(this) }
 	%% { |that| ^this.asLazyList.append(that) }
 }
