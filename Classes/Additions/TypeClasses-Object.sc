@@ -54,7 +54,7 @@
     }
 
 //Monad
-    >>= { |f| }
+    >>= { |f|  Object.typeClassError("Monad").throw }
     >>=| { |b| ^this >>= { b } }
 
     pure { |class| ^class.makePure(this) }
