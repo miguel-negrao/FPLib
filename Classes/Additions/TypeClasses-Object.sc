@@ -150,6 +150,7 @@
     }
 
     sequenceM_ { |monadClass|
+		var end;
         ^if(this.size == 0 ) {
             //with an empty list we need a hint in order to know which monad to use
             Unit.pure(monadClass)
@@ -157,7 +158,7 @@
             if(this.size == 1) {
                 this.at(0).collect{ |x| [x] }
             } {
-                var end = this.size-2;
+                end = this.size-2;
                 this[0..end].injectr(this.last.collect{ Unit }, { |mstate,m|
                     m >>=| mstate
                 })
@@ -167,6 +168,7 @@
 
 //Traverse
     traverse { |f, applicativeClass|
+		var end;
         ^if(this.size == 0 ) {
             //with an empty list we need a hint in order to know which monad to use
             this.pure(applicativeClass)
@@ -174,7 +176,7 @@
             if(this.size == 1) {
                 f.( this.at(0) ).collect{ |z| [z] }
             } {
-                var end = this.size-2;
+                end = this.size-2;
                 this[0..end].injectr( f.( this.last ).collect{ |z| [z] }, { |ys,v|
                     f.(v).collect({ |z| { |zs| [z]++zs } }) <*> ys
                 })

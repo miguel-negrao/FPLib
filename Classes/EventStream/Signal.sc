@@ -473,11 +473,12 @@ SelfSwitchFPSignal : ChildFPSignal {
 		};
 		listenerFunc = { |value|
 			//("listnerFunc called with value: "++value).postln;
+			var actualVal;
 			var switchEvent = value.at2;
 			if(switchEvent.isDefined) {
 				state = handler.value(switchEvent.get, state);
 			} {
-				var actualVal = value.at1;
+				actualVal = value.at1;
 				now = actualVal;
 				changes.fire( actualVal );
 			};
