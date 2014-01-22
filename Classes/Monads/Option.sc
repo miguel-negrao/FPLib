@@ -48,6 +48,10 @@ Option {
         }
     }
 
+	asOption {
+		^this
+	}
+
 }
 
 Some : Option {
