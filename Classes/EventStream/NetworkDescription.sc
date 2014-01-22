@@ -70,6 +70,7 @@ EventNetwork {
 
 	*returnDesc { |a| ^Writer( a, Tuple3([],[],[]) ) }
     *returnUnit { ^this.returnDesc(Unit) }
+	*makePure { |a| ^this.returnDesc(a) }
 
 	actuateNow { actuate.unsafePerformIO }
 	pauseNow { pause.unsafePerformIO }

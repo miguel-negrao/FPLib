@@ -22,12 +22,12 @@
 
 FRPGUIProxy {
 	//Option[QView]
-	var <view;
+	var <view, default;
 	//Option[Function]
 	var <f;
 
-	*new { |view|
-		^super.newCopyArgs(view.asOption)
+	*new { |view, default = 0.0|
+		^super.newCopyArgs(view.asOption, default)
 	}
 
 	addAction { |g|
@@ -56,7 +56,7 @@ FRPGUIProxy {
 	}
 
 	value {
-		^(_.value <%> view).getOrElse(0.0)
+		^(_.value <%> view).getOrElse(default)
 	}
 
 }

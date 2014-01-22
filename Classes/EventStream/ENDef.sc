@@ -30,12 +30,12 @@ ENDef {
 
 + Object {
 
-	enIn {
-		^ENDef.appendToResult( this.asENInput );
+	enIn { |...args|
+		^ENDef.appendToResult( this.asENInput(*args) );
 	}
 
-	enInES {
-		^ENDef.appendToResult( this.asENInputES );
+	enInES { |...args|
+		^ENDef.appendToResult( this.asENInputES(*args) );
 	}
 
 	enSink { |signal|
