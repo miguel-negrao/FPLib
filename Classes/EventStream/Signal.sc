@@ -28,14 +28,15 @@
 
 FPSignal {
 
-	classvar <>buildFlatCollect;
-
 	*new {
 	   ^super.new.initFPSignal
 	}
 
 	initFPSignal {
-		FPSignal.buildFlatCollect = FPSignal.buildFlatCollect.collect( _.orElse( Some(this) ) );
+		var lastIndex = EventStream.buildFlatCollect.size-1;
+    	if( lastIndex != -1) {
+    		EventStream.buildFlatCollect[lastIndex] = EventStream.buildFlatCollect[lastIndex].add(this)
+    	};
 	}
 
 	asFPSignal {
@@ -47,16 +48,19 @@ FPSignal {
 	changes { } //returns EventStream
 
 	do { |f|
+		this.checkArgs(FPSignal, "do", [f], [Function] );
 		f.(this.now);
 		^this.changes.do(f);
 	}
 
 	doDef { |name, f|
+		this.checkArgs(FPSignal, "doDef", [f], [Function] );
 		f.(this.now);
 		^this.changes.doDef(name, f)
 	}
 
 	stopDoing { |f|
+		this.checkArgs(FPSignal, "stopDoing", [f], [Function] );
 		^this.changes.stopDoing(f);
 	}
 
@@ -74,15 +78,18 @@ FPSignal {
 	}
 
     inject { |init, f|
+		this.checkArgs(FPSignal, "inject", [init, f], [Object, Function] );
     	^FoldedFPSignal( this, init, f)
     }
 
 	takeWhile { |f|
+		this.checkArgs(FPSignal, "takeWhile", [f], [Function] );
         ^TakeWhileFPSignal(this,f)
     }
 
     //audio
     bus { |server|
+		this.checkArgs(FPSignal, "bus", [server], [Server] );
     	^this.changes.bus( server, this.now )
     }
 
@@ -100,6 +107,7 @@ FPSignal {
 	}
 
     debug { |string|
+		this.checkArgs(FPSignal, "debug", [string], [String] );
         ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
     }
 
@@ -128,11 +136,46 @@ FPSignal {
 
     //For these methods this should be signal with the time value
     integral { |tsig|
-        var delta = tsig.delta;
-        var inc =  (_*_) <%> this <@> delta.changes; //only updates when tsig updates
-        ^inc.inject(0, {|state, inc|
-            state + inc
-        }).hold(0.0)
+		var check = this.checkArgs(FPSignal, "integral", [tsig], [FPSignal] );
+		var a1 = "a1".postln;
+		var x = T(_,_) <%> this <@> tsig.changes; //only updates when tsig updates
+
+		var y = x.inject(nil, {|state, x|
+			if(state.notNil) {
+				var oldValue = state.at1;
+				var oldT = state.at2;
+				var g = x.at1;
+				var t = x.at2;
+				if(oldT < t) {
+					T( oldValue + (g*(t-oldT)), t) //if time is fastforward not much we can do...
+				} {
+					T(0, t) // if time was rewinded then start the state from zero again...
+				}
+			} {
+				T(0,x.at2) //first time it's run we zero the state and store the time
+			}
+		});
+		var a2 = "a2".postln;
+		var z = y.collect(_.at1);
+		var a3 = "a3".postln;
+		^z.hold(0.0)
+    }
+
+	//should be time signal
+	integral1 {
+		^this.inject(nil, {|state, t|
+			if(state.notNil) {
+				var oldValue = state.at1;
+				var oldT = state.at2;
+				if(oldT < t) {
+					T( oldValue + (t-oldT), t) //if time is fastforward not much we can do...
+				} {
+					T(0, t) // if time was rewinded then start the state from zero again...
+				}
+			} {
+				T(0,t) //first time it's run we zero the state and store the time
+			}
+		}).collect(_.at1)
     }
 
 	//to be used on time signal
@@ -260,40 +303,45 @@ FPSignal {
 
 //Functor
 	collect { |f|
+		this.checkArgs(FPSignal, "collect", [f], [Function] );
         ^CollectedFPSignal(this,f)
     }
 
 //Aplicative Functor
     //apply signals to signals
     <*> { |fasignal|
-		var fnow = this.now;
-		var fasignalnow = fasignal.now;
-		^ApplySignalES(this.changes, fasignal.changes, fnow, fasignalnow).hold( fnow.(fasignalnow) )
+		this.checkArgs(FPSignal, "<*>", [fasignal], [FPSignal] );
+		^ApplyFPSignal(this, fasignal )
     }
 
     //apply time-varying function to EventSources
     <@> { |es|
-        //apply a signal with a function to every incoming event
+		this.checkArgs(FPSignal, "<@>", [es], [EventStream] );
+         //apply a signal with a function to every incoming event
         ^es.collect{ |x| this.now.value(x) }
     }
 
      <@ { |es|
+		this.checkArgs(FPSignal, "<@", [es], [EventStream] );
         //apply a signal with a function to every incoming event
         ^es.collect{ |x| this.now }
     }
 
 	//alias
 	sampleOn { |es|
+		this.checkArgs(FPSignal, "sampleOn", [es], [EventStream] );
         //apply a signal with a function to every incoming event
         ^es.collect{ |x| this.now }
     }
 
 
-    switch { |f, initialState|
-        ^FlatCollectedFPSignal( this, f, initialState)
+    switch { |f, initialSignal|
+		this.checkArgs(FPSignal, "switch", [f], [Function] );
+        ^FlatCollectedFPSignal( this, f, initialSignal)
     }
 
 	selfSwitch { |f|
+		this.checkArgs(FPSignal, "selfSwitch", [f], [Function] );
         ^SelfSwitchFPSignal( f, this)
     }
 
@@ -302,7 +350,8 @@ FPSignal {
 SignalChangeES : EventSource {
 	var ref;
 
-	*new { |handler| ^super.new.initSignalChange(handler) }
+	//this should not be logged into EventStream.buildFlatCollect
+	*new { |handler| ^super.newNoLog.initSignalChange(handler) }
 
     initSignalChange { |handler|
     	ref = handler
@@ -353,72 +402,118 @@ CollectedFPSignal : ChildFPSignal {
             var x = f.(event);
             now = x;
             changes.fire( x );
-        }, Unit, { f.(parent.now) })
+        }, parent.now, f)
     }
+}
+
+ApplyFPSignal : FPSignal {
+	var <f, <x, <fval, <xval, <flistener, <xlistener, <now, <changes;
+
+	*new { |f, x|
+        ^super.new.initApplySignalFPSignal(f, x)
+    }
+
+    initApplySignalFPSignal { |farg, xarg|
+		changes = SignalChangeES();
+		f = farg;
+		x = xarg;
+		fval = f.now;
+		xval = x.now;
+		now = fval.(xval);
+		flistener = { |newf|
+			fval = newf;
+			now = fval.(xval);
+			changes.fire( now )
+		};
+		xlistener = { |newx|
+			xval = newx;
+			now = fval.(xval);
+			changes.fire( now )
+		};
+		f.changes.addListener( flistener );
+		x.changes.addListener( xlistener );
+	}
+
+    remove {
+		f.changes.removeListener( flistener );
+		x.changes.removeListener( xlistener );
+		^Unit
+	}
+
 }
 
 FlatCollectedFPSignal : ChildFPSignal {
 
-    *new { |parent, f, initialSignal|
-        ^super.new.init(parent, f, initialSignal)
-    }
+	*new { |parent, f, initialSignal|
+		^super.new.init(parent, f, initialSignal)
+	}
 
-    init { |parent, f, initialSignalArg|
-    	var initSignal, initialState;
-        var thunk = { |x|
-        	//("thunk was called with event "++x).postln;
-            now = x;
-            changes.fire( x );
-        };
-        if(initialSignalArg.isNil) {
+	init { |parent, f, initialSignalArg|
+		var initSignal, initialState, log;
+		var thunk = { |x|
+			//("thunk was called with event "++x).postln;
+			now = x;
+			changes.fire( x );
+		};
+		if(initialSignalArg.isNil) {
 			//get first signal from the switcher signal
-			FPSignal.buildFlatCollect = Some(None());
+			EventStream.buildFlatCollect = EventStream.buildFlatCollect.add([]);
+			//"running switch func init".postln;
 			initSignal = f.(parent.now);
-			initialState = Tuple2(FPSignal.buildFlatCollect.get,initSignal);
-			FPSignal.buildFlatCollect = None();
+			log = EventStream.buildFlatCollect.pop(-1);
+			//"switching init- listOfCreatedObjects %".format(log).postln;
+			initialState = Tuple2(log, initSignal);
 		} {
 			//or use the provided first signal
 			initSignal = initialSignalArg;
-			initialState = Tuple2(None(),initSignal);
+			initialState = Tuple2([],initSignal);
 		};
-        initSignal.changes !? _.addListener(thunk);
-        this.initChildFPSignal(parent, { |event, tuple|
-             var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
-             //start of the old created chain
-             lastSigStart = tuple.at1;
-             //end of old created chain
-             lastSigEnd = tuple.at2;
-             //stop receiving events from old chain
-             lastSigEnd.changes !? _.removeListener( thunk );
-              //disconnect the old chain from it's start point
-             lastSigStart.do{ |x| x.tryPerform(\remove) };
-             //let's discover where the new chain starts
-             FPSignal.buildFlatCollect = Some(None());
-             nextSigEnd = f.(event);
-             //if a new EventSource was created the first one created will be here:
-             nextSigStart = FPSignal.buildFlatCollect.get;
-             //reset the global variable
-             FPSignal.buildFlatCollect = None();
-             thunk.( nextSigEnd.now );
-             //start receiving events from new EventStream
-             nextSigEnd.changes !? _.addListener( thunk );
-             //store the new chain
-             Tuple2(nextSigStart, nextSigEnd);
+		initSignal.changes !? _.addListener(thunk);
+		this.initChildFPSignal(parent, { |event, tuple|
+			var lastListOfCreatedObjects, lastSigEnd, listOfCreatedObjects, nextSigEnd;
 
-        }, initialState, { |x| x.at2.now })
-    }
+			//list of all ess or signals created during last switch function execution
+			lastListOfCreatedObjects = tuple.at1;
+
+			//end of old created chain
+			lastSigEnd = tuple.at2;
+
+			//stop receiving events from old chain
+			lastSigEnd.changes !? _.removeListener( thunk );
+
+			//disconnect all created objects
+			lastListOfCreatedObjects.do{ |x| x.tryPerform(\remove) };
+
+			//let's start logging all created frp objects
+			EventStream.buildFlatCollect = EventStream.buildFlatCollect.add([]);
+			//"running switch func".postln;
+			nextSigEnd = f.(event);
+			//store log:
+			listOfCreatedObjects = EventStream.buildFlatCollect.pop(-1);
+			//"switching - listOfCreatedObjects %".format(listOfCreatedObjects).postln;
+
+			thunk.( nextSigEnd.now );
+
+			//start receiving events from new EventStream
+			nextSigEnd.changes !? _.addListener( thunk );
+
+			//store the new chain
+			Tuple2(listOfCreatedObjects, nextSigEnd);
+
+		}, initialState, { |x| x.at2.now })
+	}
 }
 
 SelfSwitchFPSignal : ChildFPSignal {
-
-	*new { |f, initialSignal|
-		^super.new.init(f, initialSignal)
+	//initSignalStart Option[FPSignal]
+	*new { |f, initialSignal, initSignalStart|
+		^super.new.init(f, initialSignal, initSignalStart.asArray)
 	}
 
-	init { |f, initSignal|
+	init { |f, initSignal, initSignalStart|
 		var initialState, register, thunk;
 
-		initialState = Tuple2(None(),initSignal);
+		initialState = Tuple2(initSignalStart, initSignal);
 
 		state = initialState;
 
@@ -438,10 +533,10 @@ SelfSwitchFPSignal : ChildFPSignal {
 
 		//react to event switch
 		handler = { |event, tuple|
-			var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
+			var lastListOfCreatedObjects, lastSigEnd, listOfCreatedObjects, nextSigEnd;
 
-			//start of the old created chain
-			lastSigStart = tuple.at1;
+			//list of all ess or signals created during last switch function execution
+			lastListOfCreatedObjects = tuple.at1;
 
 			//end of old created chain
 			lastSigEnd = tuple.at2;
@@ -450,16 +545,15 @@ SelfSwitchFPSignal : ChildFPSignal {
 			lastSigEnd.changes !? _.removeListener( thunk );
 			lastSigEnd.changes !? _.removeListener( listenerFunc );
 
-			//disconnect the old chain from it's start point
-			lastSigStart.do{ |x| x.tryPerform(\remove) };
+			//disconnect all created objects
+			lastListOfCreatedObjects.do{ |x| x.tryPerform(\remove) };
 
 			//let's discover where the new chain starts
-			FPSignal.buildFlatCollect = Some(None());
+			EventStream.buildFlatCollect = EventStream.buildFlatCollect.add([]);
 			nextSigEnd = f.(event);
-			//if a new EventSource was created the first one created will be here:
-			nextSigStart = FPSignal.buildFlatCollect.get;
-			//reset the global variable
-			FPSignal.buildFlatCollect = None();
+			//store log:
+			listOfCreatedObjects = EventStream.buildFlatCollect.pop(-1);
+			//"Switching - objects created %".format(listOfCreatedObjects).postln;
 
 			register.( nextSigEnd );
 
@@ -468,7 +562,7 @@ SelfSwitchFPSignal : ChildFPSignal {
 			changes.fire( now );
 
 			//store the new chain
-			Tuple2(nextSigStart, nextSigEnd);
+			Tuple2(listOfCreatedObjects, nextSigEnd);
 
 		};
 		listenerFunc = { |value|
@@ -513,27 +607,32 @@ FlatCollectedFPSignalHybrid : ChildFPSignal {
 
         initSignal.changes !? _.addListener(thunk);
         this.initChildFPSignal(parent, { |event, tuple|
-             var lastSigStart, lastSigEnd, nextSigStart, nextSigEnd;
-             //start of the old created chain
-             lastSigStart = tuple.at1;
-             //end of old created chain
-             lastSigEnd = tuple.at2;
-             //stop receiving events from old chain
-             lastSigEnd.changes !? _.removeListener( thunk );
-              //disconnect the old chain from it's start point
-             lastSigStart.do{ |x| x.tryPerform(\remove) };
-             //let's discover where the new chain starts
-             FPSignal.buildFlatCollect = Some(None());
-             nextSigEnd = f.(event);
-             //if a new EventSource was created the first one created will be here:
-             nextSigStart = FPSignal.buildFlatCollect.get;
-             //reset the global variable
-             FPSignal.buildFlatCollect = None();
-             thunk.( nextSigEnd.now );
-             //start receiving events from new EventStream
-             nextSigEnd.changes !? _.addListener( thunk );
-             //store the new chain
-             Tuple2(nextSigStart, nextSigEnd);
+             var lastListOfCreatedObjects, lastSigEnd, listOfCreatedObjects, nextSigEnd;
+
+			//list of all ess or signals created during last switch function execution
+			lastListOfCreatedObjects = tuple.at1;
+
+			//end of old created chain
+			lastSigEnd = tuple.at2;
+
+			//stop receiving events from old chain
+			lastSigEnd.changes !? _.removeListener( thunk );
+			//disconnect all created objects
+			lastListOfCreatedObjects.do{ |x| x.tryPerform(\remove) };
+
+			//let's discover where the new chain starts
+			EventStream.buildFlatCollect = EventStream.buildFlatCollect.add([]);
+			nextSigEnd = f.(event);
+			//store log:
+			listOfCreatedObjects = EventStream.buildFlatCollect.pop(-1);
+
+			thunk.( nextSigEnd.now );
+			//start receiving events from new EventStream
+
+			nextSigEnd.changes !? _.addListener( thunk );
+
+			//store the new chain
+			Tuple2(listOfCreatedObjects, nextSigEnd);
 
         }, initialState, { |x| x.at2.now })
     }
@@ -601,9 +700,9 @@ Val : FPSignal {
 	var <now;
 	var <changes;
 
-	*new { |now| ^super.newCopyArgs(now).init }
+	*new { |now| ^super.newCopyArgs(now).initVal }
 
-	init {
+	initVal {
 		changes = EventSource();
 	}
 }
@@ -650,7 +749,11 @@ Var : Val {
 + Function {
 
 	selfSwitch { |initArg|
-		^this.value(initArg).selfSwitch(this)
+		var listOfCreatedObjects, nextSigEnd;
+		EventStream.buildFlatCollect = EventStream.buildFlatCollect.add([]);
+		nextSigEnd = this.value(initArg);
+		listOfCreatedObjects = EventStream.buildFlatCollect.pop(-1);
+		^SelfSwitchFPSignal( this, nextSigEnd, listOfCreatedObjects)
 	}
 
 }

@@ -32,6 +32,26 @@ EventStream{
 	classvar <>debugInternal = false;
 	classvar <>buildFlatCollect;
 
+	/*
+	How buildFlatCollect works:
+
+	The reason for having the buildFlatCollect mechanism is to deal with the situation where new frp
+	objects are created inside a switch function. In this case when the switch function is run again
+	the old created objects would still be connected to their parents and updating when they updated
+	thus consuming memory and cpu.
+
+	buildFlatCollect has type Option[Array]
+	it logs all created objects during the evaluation of the function passed to switch or selfswitch
+
+	None() -> no analysis happening
+	Some([]) -> analysis started, list of objects collected so far
+
+	when an frp object is created inside a switching function it gets added to the buildFlatCollect.last
+	when an frp object is created outside a switching function it doesn't get added
+
+	buildFlatCollect contains a list because a switching function can be run inside another switching function.
+	*/
+
 	*initClass {
 		doFuncs = Dictionary.new;
 		buildFlatCollect = [];
@@ -40,57 +60,7 @@ EventStream{
 }
 
 EventSource : EventStream {
-	classvar <eventStreamTemplateFolders;
     var <listeners;
-
-    *initClass{
-		eventStreamTemplateFolders =
-			[this.filenameSymbol.asString.dirname.dirname +/+ "EventStreamTemplates",
-			Platform.userAppSupportDir++"/Extensions/EventStreamTemplates/"];
-	}
-
-	doesNotUnderstand{ |selector ...args|
-		var template = EventSource.getEventSourceTemplate(selector);
-		^if( template.notNil ) {
-			template[\func].value(this, *args)
-		} {
-			super.doesNotUnderstand(selector,*args)
-		}
-	}
-
-	*cleanTemplateName{ |name|
-		^name.asString.collect { |char| if (char.isAlphaNum, char, $_) };
-	}
-
-	*getTemplateFilePaths{ |templateName|
-		var cleanTemplateName = this.cleanTemplateName(templateName);
-		^eventStreamTemplateFolders.collect({|x| x +/+ cleanTemplateName ++ ".scd"});
-	}
-
-	*getEventSourceTemplate{ arg name;
-		var path;
-		this.getTemplateFilePaths(name).do{ |testpath|
-			if( File.exists(testpath) ) {
-				path = testpath;
-			}
-		};
-		^if( name.notNil and: path.notNil ) {
-			path.load
-		} {
-			"//" + this.class ++ ": - no EventSource template found for %: please make them!\n"
-			.postf( this.cleanTemplateName(name) );
-			("Templates should be placed at "++Platform.userAppSupportDir++"/Extensions/EventSourceTemplates/").postln;
-			nil
-		}
-	}
-
-	*availableTemplates{
-		^EventSource.eventStreamTemplateFolders.collect{ |x|
-			x.getPathsInDirectory.collect{ |y|
-				y.removeExtension
-			}
-		}.flatten
-	}
 
     *new{
         ^super.new.initEventSource
@@ -99,9 +69,17 @@ EventSource : EventStream {
     //private
     initEventSource {
     	var lastIndex = EventStream.buildFlatCollect.size-1;
-    	if( (lastIndex != -1) and: {EventStream.buildFlatCollect[lastIndex].isEmpty}) {
-    		EventStream.buildFlatCollect[lastIndex] = Some(this)
+    	if( lastIndex != -1) {
+    		EventStream.buildFlatCollect[lastIndex] = EventStream.buildFlatCollect[lastIndex].add(this)
     	};
+        listeners = [];
+    }
+
+	*newNoLog {
+		^super.new.initNoLog
+	}
+
+	initNoLog {
         listeners = [];
     }
 
@@ -139,6 +117,7 @@ EventSource : EventStream {
 	//behaves like initSignal until an event arrives then behaves like the
 	//signal returned by f
 	switchSig { |f, initSignal|
+		this.checkArgs(EventStream, "switchSig", [f, initSignal], [Function, FPSignal] );
 		^FlatCollectedFPSignalHybrid( this, f, initSignal)
     }
 
@@ -490,27 +469,29 @@ FlatCollectedES : ChildEventSource {
          	this.fire(x)
         };
         state.at2 !? _.addListener(thunk);
-        this.initChildEventSource(parent, { |event, tuple|
-             var lastESStart, lastESEnd, nextESStart, nextESEnd;
-             //start of the old created chain
-             lastESStart = tuple.at1;
-             //end of old created chain
-             lastESEnd = tuple.at2;
-             //stop receiving events from old chain
-             lastESEnd !? _.removeListener( thunk );
-              //disconnect the old chain from it's start point
-             lastESStart.do{ |x| x.tryPerform(\remove) };
-             //let's discover where the new chain starts
-             //I don't think that there is a situation where another flatcollect handler would be started here but who knows...
-             EventStream.buildFlatCollect = EventStream.buildFlatCollect.add(None());
-             nextESEnd = f.(event);
-             //if a new EventSource was created the first one created will be here:
-             nextESStart = EventStream.buildFlatCollect.pop(-1);
-             //start receiving events from new EventStream
-             nextESEnd !? _.addListener( thunk );
-             //store the new chain
-             Tuple2(nextESStart, nextESEnd);
-        })
+		this.initChildEventSource(parent, { |event, tuple|
+			var lastListOfCreatedObjects, lastESEnd, listOfCreatedObjects, nextESEnd;
+
+			//list of all ess or signals created during last switch function execution
+			lastListOfCreatedObjects = tuple.at1;
+			//disconnect them
+			lastListOfCreatedObjects.do{ |x| x.tryPerform(\remove) };
+
+			//end of old created chain
+			lastESEnd = tuple.at2;
+			//stop receiving events from old chain
+			lastESEnd !? _.removeListener( thunk );
+
+			//let's start logging all created frp objects
+			EventStream.buildFlatCollect = EventStream.buildFlatCollect.add([]);
+			nextESEnd = f.(event);
+			//if a new EventSource was created the first one created will be here:
+			listOfCreatedObjects = EventStream.buildFlatCollect.pop(-1);
+			//start receiving events from new EventStream
+			nextESEnd !? _.addListener( thunk );
+			//store the new chain
+			Tuple2(listOfCreatedObjects, nextESEnd);
+		})
     }
 
         remove {
@@ -550,34 +531,4 @@ MergedES : EventSource {
         parent1.addListener( thunk );
         parent2.addListener( thunk );
     }
-}
-
-ApplySignalES : EventSource {
-	var <f, <x, <fval, <xval, <flistener, <xlistener;
-    *new { |f, x, initf, initx|
-        ^super.new.init(f, x, initf, initx)
-    }
-
-    init { |farg, xarg, initf, initx|
-		f = farg;
-		x = xarg;
-		fval = initf;
-		xval = initx;
-        flistener = { |newf|
-			fval = newf;
-			this.fire( fval.( xval ) )
-		};
-		xlistener = { |newx|
-			xval = newx;
-			this.fire( fval.( xval ) )
-		};
-        f.addListener( flistener );
-        x.addListener( xlistener );
-    }
-
-    remove {
-		f.removeListener( flistener );
-		x.removeListener( xlistener );
-	}
-
 }
