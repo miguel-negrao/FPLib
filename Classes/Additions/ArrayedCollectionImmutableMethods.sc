@@ -45,6 +45,28 @@
     takeN { |n|
         ^this[..(n-1)]
     }
+
+	head {
+		^this[0]
+	}
+
+	tail {
+		^this[1..]
+	}
+
+	heads {
+		var n = this.size;
+		^(n+1).collect{ |i|
+			this[..(i-1)]
+		}
+	}
+
+	tails {
+		var n = this.size;
+		^(n+1).collect{ |i|
+			this[i..]
+		}
+	}
 }
 
 
