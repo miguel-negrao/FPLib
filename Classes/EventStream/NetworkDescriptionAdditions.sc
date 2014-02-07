@@ -32,12 +32,12 @@ FRPGUIProxy {
 
 	addAction { |g|
 		f = Some(g);
-		view.collect{ |x| x.addAction(g) }
+		view.collect{ |x| x.action_( x.action.addFunc(g) ) }
 	}
 
 	removeAction { |g|
 		f = Some(g);
-		view.collect{ |x| x.removeAction(g) }
+		view.collect{ |x| x.action_( x.action.removeFunc(g) ) }
 	}
 
 	asENInput {
@@ -45,13 +45,14 @@ FRPGUIProxy {
 	}
 
 	view_ { |newView|
-		{ |view, action| view.removeAction(action) } <%> view <*> f;
-		newView.addAction(_) <%> f;
+		if(newView.isNil){ Error("FRPGUIProxy#view_ : newView is nil").throw };
+		{ |view, g| view.action_( view.action.removeFunc(g) ) } <%> view <*> f;
+		{ |g| newView.action_( newView.action.addFunc(g) ) } <%> f;
 		view = Some(newView)
 	}
 
 	removeView {
-		{ |view, action| view.removeAction(action) } <%> view <*> f;
+		{ |view, g| view.action_( view.action.removeFunc(g) ) } <%> view <*> f;
 		view = None();
 	}
 
@@ -130,6 +131,17 @@ FRPGUICode {
 }
 
 + QView {
+
+	asENInput {
+		^FRPGUICode.makeENInput(this)
+	}
+
+	asENInputES {
+		^FRPGUICode.makeENInputES(this)
+	}
+}
+
++ View {
 
 	asENInput {
 		^FRPGUICode.makeENInput(this)

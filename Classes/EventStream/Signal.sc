@@ -112,6 +112,11 @@ FPSignal {
     }
 
     //utilities
+
+	mapWith { |spec|
+		^this.collect{ |v| spec.map( v ) }
+	}
+
     storePrevious {
         ^this.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) })
     }
@@ -130,9 +135,6 @@ FPSignal {
     }
 
     //time related signal methods
-
-	//
-
 
     //For these methods this should be signal with the time value
     integral { |tsig|
@@ -155,10 +157,7 @@ FPSignal {
 				T(0,x.at2) //first time it's run we zero the state and store the time
 			}
 		});
-		var a2 = "a2".postln;
-		var z = y.collect(_.at1);
-		var a3 = "a3".postln;
-		^z.hold(0.0)
+		^y.collect(_.at1).hold(0.0)
     }
 
 	//should be time signal
@@ -214,6 +213,20 @@ FPSignal {
 		})
     }
 
+	lfsine { |f|
+		^this.changeRate(f).collect{ |t| (sin(2pi*t)+1)/2 }
+	}
+
+	lfsaw { |f|
+		^this.changeRate(f).collect{ |t| t.mod(1.0) }
+	}
+
+	lfpulse { |f|
+		^this.changeRate(f).collect{ |t|
+			var x = t.mod(1.0);
+			if(x < 0.5){ 0.0 }{1.0}
+		}
+	}
 
 	//behaves like this signal until switchtime
 	//from then on behaves like laterSig

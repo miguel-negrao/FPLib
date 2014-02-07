@@ -240,6 +240,10 @@ EventSource : EventStream {
 	}
 
     //utilities
+	mapWith { |spec|
+		^this.collect{ |v| spec.map( v ) }
+	}
+
     selectSome {
         ^this.select(_.isDefined).collect(_.get)
     }
