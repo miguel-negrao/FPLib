@@ -222,6 +222,22 @@ LazyListCons : LazyList {
 		}
 	}
 
+	dropWhile { |predicate|
+		^if( predicate.( head ) ) {
+			this.tail.dropWhile(predicate)
+		} {
+			this
+		}
+	}
+
+	span { |predicate|
+		^T(this.takeWhile(predicate), this.dropWhile(predicate))
+	}
+
+	ar {
+	 ^this.asArray
+	}
+
 	asArray {
     	^this.prToArray([])
 	}
@@ -329,6 +345,9 @@ LazyListEmpty : LazyList {
 
 	*take {}
 	*asArray{ ^[] }
+	*ar {
+		^this.asArray
+	}
 	*prToArray { |array| ^array }
 	*zip {}
 	*drop {}
