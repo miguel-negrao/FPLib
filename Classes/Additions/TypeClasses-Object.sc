@@ -208,4 +208,13 @@
 
     *zero { ^"" }
 }
- 
+
++ Array {
+	mreduce { |class|
+		^if(this.size == 0) {
+			class.zero
+		} {
+			this.inject(this.at(0).class.zero, _ |+| _ )
+		}
+	}
+}
