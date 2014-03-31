@@ -66,6 +66,10 @@ EventSource : EventStream {
         ^super.new.initEventSource
     }
 
+	*zero{
+		^NothingES()
+	}
+
     //private
     initEventSource {
     	var lastIndex = EventStream.buildFlatCollect.size-1;
@@ -110,6 +114,10 @@ EventSource : EventStream {
         ^FoldedFES(this, initial);
     }
 
+	injectFSig { |initial|
+		^FoldedFES(this, initial).hold(initial);
+	}
+
     switch { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
@@ -134,6 +142,11 @@ EventSource : EventStream {
     merge { |otherES|
     	^MergedES( this, otherES )
     }
+
+	//monoid
+	|+| { |otherES|
+		^MergedES( this, otherES )
+	}
 
     takeWhile { |f|
         ^TakeWhileES( this, f)
@@ -350,6 +363,10 @@ EventSource : EventStream {
 
 NothingES : EventSource {
 	fire { ^Unit }
+	|+| { |otherES|
+		^otherES
+	}
+
 }
 
 HoldFPSignal : FPSignal {

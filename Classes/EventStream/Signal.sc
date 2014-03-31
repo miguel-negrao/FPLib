@@ -87,6 +87,18 @@ FPSignal {
         ^TakeWhileFPSignal(this,f)
     }
 
+	selectApply { |es|
+		^({ |f, val| T(f.(val), val) } <%> this <@> es )
+		.select(_.at1)
+		.collect(_.at2)
+	}
+
+	when { |es|
+		^({ |bool, val| T(bool, val) } <%> this <@> es )
+		.select(_.at1)
+		.collect(_.at2)
+	}
+
     //audio
     bus { |server|
 		this.checkArgs(FPSignal, "bus", [server], [Server] );
@@ -213,8 +225,8 @@ FPSignal {
 		})
     }
 
-	lfsine { |f|
-		^this.changeRate(f).collect{ |t| (sin(2pi*t)+1)/2 }
+	lfsine { |f, phase|
+		^{ |t,phase| (sin((2pi*t)+phase)+1)/2 } <%> this.changeRate(f.asFPSignal) <*> (phase ? Val(0)).asFPSignal
 	}
 
 	lfsaw { |f|
@@ -227,6 +239,8 @@ FPSignal {
 			if(x < 0.5){ 0.0 }{1.0}
 		}
 	}
+
+	noise { |lo=0.0,hi=1.0| ^this.collect{ rrand(lo,hi) } }
 
 	//behaves like this signal until switchtime
 	//from then on behaves like laterSig
@@ -348,7 +362,7 @@ FPSignal {
     }
 
 
-    switch { |f, initialSignal|
+    switch2 { |f, initialSignal|
 		this.checkArgs(FPSignal, "switch", [f], [Function] );
         ^FlatCollectedFPSignal( this, f, initialSignal)
     }
