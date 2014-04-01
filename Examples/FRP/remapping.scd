@@ -1,116 +1,101 @@
-//Exchange actions between controls.
-//need to convert
-
 (
-var withGui = true;
-//one controller
-MIDIMKtl.find;
-//with nanokontrol
-k = MKtl('bcr20000');
-k.reset;
-~synths !? { |x| x.do(_.free) };
-/*
-change to this if you don't have a nanokontrol
-k =  MKtl.make('nnkn0', 'nanoKONTROL');
-*/
+q = ();
 
-//some controls that control some synthesis process
-~knobs = k.esFor((1..4).collect{ |i| [\kn,7,i] });
+w !? _.close;
+q.knobs = 4.collect{ Knob() };
+q.labels = ["SinOsc","Saw","LFNoise","WhiteNoise"];
+q.numboxes = 4.collect{ NumberBox() };
+q.texts = q.labels.collect{ |st| StaticText().string_(st) };
+q.button = Button().states_([[0],[1]]);
 
-//the button that enters selection mode
-~but = k.esFor(\pr_2_1);
-~nothing = EventSource();
+q.window = Window(bounds:Rect(200,200,200,100)).layout_(
+	VLayout(
+		HLayout( *q.knobs ),
+		HLayout( *q.numboxes ),
+		HLayout( *q.texts ),
+		q.button
+	)
+).front;
 
-//selection mode is entered when ~but is set to 1
-//it is exited when two different knobs are moved
-~but.do{ |x| if(x == 1){ "entering remap mode".postln } };
-~exchange = ~but.flatCollect{ |y|
-	var selection;
-	//enter remap mode
-	if( y == 1) {
-		//two different knobs are moved
-		selection = ~knobs.collect{ |x,i| x.collect{i} }.reduce('|')
-		.inject([false],{ |state,x|
-			//("knob "++x++" selected for exchange").postln;
-			(switch(state.size)
-				{1} { [false,x] }
-				{2} { if(x != state.last) { [true,state.last,x] } { state } }
-				{3} { [false,0,0] });
-		}).select{ |x| x[0] == true}.collect{ |array| [array[1],array[2]] };
-	} {
-		//exit remap mode
-		//debug: "exiting remap mode 1".postln;
-		~nothing
-	}
-};
-~exchange.do{ |x| ("Exchanging actions of knobs "++x).postln };
-//if actions are changed then reset the button
-~exchange.do{ k.at(\pr_2_1).send(0) };
-//index i of this array is the knob that will go into action i;
-~startState = [0,1,2,3]; //which knobs go to which action
-
-//~exchange = EventSource();
-~sel = ~exchange.inject(~startState, { |state, exchangePair|
-		var indexA = state.indexOf(exchangePair[0]);
-		var indexB = state.indexOf(exchangePair[1]);
-		//("Exchange pair: "++exchangePair).postln;
-		//postln("state :" ++state);
-		state.swap(indexA, indexB);
-});
-
-f = { |i| { |state|
-	~knobs[state[i]]
-}};
-
-//between receiving 1 on ~but and ~receiving a zero, or receiving something from ~exchange do nothing.
-g = { |i| (~but | ~exchange).flatCollect({ |x|
-	if(x == 1) {
-		~nothing
-	} {
-		~sel.flatCollect(f.(i),~knobs[~selSignal.now[i]]);
-	} },~knobs[i]);
-};
-
-~selSignal = ~sel.hold([0,1,2,3]);
-
-~outputs = 4.collect{ |i| g.(i) };
-
-~synths = [
+q.synths = [
 	{ |freq=400| Pan2.ar( SinOsc.ar(freq)*0.2, -1.0) }.play,
 	{ |freq=400| Pan2.ar( Saw.ar(freq)*0.2, -0.2) }.play,
 	{ |freq=400| Pan2.ar( LFNoise0.ar(freq)*0.2, 0.6) }.play,
 	{ |freq=400| Pan2.ar( LPF.ar( WhiteNoise.ar, freq)*0.6, 1.0) }.play
 ];
-[~outputs, ~synths].flopWith{ |es, synth|
-	es.do{ |v|
-		synth.set(\freq, v.linlin(0.0,1.0,200.0,2000.0))
+
+CmdPeriod.add{ q.window !? _.close };
+
+
+EventNetwork(ENDef({
+
+	var knobs = q.knobs.collect(_.enInES);
+	var knobsSig = knobs.collect(_.hold(0.0));
+	var but = q.button.enInES.collect(_.booleanValue);
+	var butSig = but.hold(false);
+
+	//**** FRP LOGIC *****
+
+	//selection mode is entered when ~but is set to 1
+	//it is exited when two different knobs are moved
+
+	var exchange = (
+		but.select({ |x| x}).collect{ { [] } } |
+		knobs.collect{ |es,i|
+			es.collect{
+				{ |state|
+					state !? { |xs|
+						switch(xs.size)
+						{0}{[i]}
+						{1}{ if(xs[0] != i){xs++[i]}{xs}}
+						{nil}
+					}
+				}
+			}
+		}.mreduce
+	).injectF(nil)
+	.select({ |xs| xs.size == 2})
+	.enDebug("exchange");
+
+	//index i of this array is the knob that will go into action i;
+	var startState = [0,1,2,3]; //which knobs go to which action
+
+	var currentOrder = exchange.injectSig(startState, { |state, exchangePair|
+		var indexA = state.indexOf(exchangePair.postln[0]);
+		var indexB = state.indexOf(exchangePair[1]);
+		state.swap(indexA, indexB);
+	}).enDebug("currentOrder");
+
+	var knobsArray = knobs.collect{ |es| butSig.collect(_.not).when(es).hold(0.0) }.sequence;
+	var outputsArray = ({ |order, values|
+		values[order]
+	} <%> currentOrder <*> knobsArray)
+	.enDebug("outputs");
+
+	var outputs = 4.collect{ |i|
+		outputsArray.collect{ |xs| xs[i] }
+	};
+
+	// **** FRP LOGIC STOP *****
+
+	//set synth
+	[outputs, q.synths].flopWith{ |sig, synth|
+		synth.enSetSink(\freq,  sig.linlin(0.0,1.0,200.0,2000.0) )
+	};
+
+	//set GUIs
+	currentOrder.collect{ |array|
+		IO{
+			[array, q.labels].flopWith{ |i, label|
+				defer{ q.texts[i].string_(  label ) }
+			}
+		}
+	}.enOut;
+
+	[q.numboxes, outputs].flopWith{ |box, sig|
+		box.enSinkValue( sig )
 	}
-};
 
-//GUI
-if( withGui ) {
-w !? _.close;
-~guiKnobs = 4.collect{ Knob() };
-~labels = ["SinOsc","Saw","LFNoise","WhiteNoise"];
+},true)).start
 
-~guiTV = ~labels.collect{ |st| TextView().string_(st) };
-w = Window(bounds:Rect(200,200,200,100)).layout_(
-	 VLayout(
-    	HLayout( *~guiKnobs ),
-		HLayout( *~guiTV ),
-	)
-
-).front;
-[~knobs, ~guiKnobs].flopWith{ |knob,gui|
-	knob.do{ |v| defer{ gui.value_(v) } }
-};
-~sel.do{ |array|
-	array.postln;
-	[array, ~labels].flopWith{ |i, label|
-		defer{ ~guiTV[i].string_(  label ) }
-	}
-}
-} {
-	~outputs.do{ |es,i| es.do{ |x| ("action "++i++" got a "++x).postln } };
-}
 )
