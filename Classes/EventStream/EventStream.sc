@@ -110,6 +110,9 @@ EventSource : EventStream {
         ^FoldedES(this, initial, f);
     }
 
+	injectSig { |initial,f|
+		^FoldedES(this, initial, f).hold(initial);
+	}
 	injectF { |initial|
         ^FoldedFES(this, initial);
     }
@@ -118,7 +121,7 @@ EventSource : EventStream {
 		^FoldedFES(this, initial).hold(initial);
 	}
 
-    switch { |f, initialState|
+    switch2 { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
 

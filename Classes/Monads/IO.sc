@@ -119,7 +119,7 @@ IO{
 
 + Node {
 	setIO { arg ... args;
-		server.sendMsgIO(15, nodeID, *(args.asOSCArgArray));  //"/n_set"
+		^server.addr.sendMsgIO(15, nodeID, *(args.asOSCArgArray));  //"/n_set"
 	}
 }
 

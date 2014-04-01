@@ -177,15 +177,3 @@ FRPGUICode {
 	}
 
 }
-
-+ Synth {
-
-	setSink { |signal|
-		^signal.collect{ |xs| IO{ this.set(*xs) } }.reactimate
-	}
-
-	*newSink { |signal|
-		^signal.collect{ |xs| IO{ this.new(*xs) } }.reactimate
-	}
-
-}
