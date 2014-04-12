@@ -11,128 +11,45 @@ The FP quark implementation of FRP is based on link::http://reactive-web.co.cc##
 The key points to keep in mind regarding FRP are:
 
 list::
-# FPSignals and EventStreams represent events that can happen at any time.
-# Signals are continuous (they have a "now" value) while event streams are discrete (no "now" value).
-# An event network connects inputs (MIDI, GUI, OSC, timer, etc) to outputs (set argument to a synth, draw on screen, etc) via signals and event streams.
-# signals and event streams when placed in an event network are automatically connected to inputs and outputs when the network is compiled or started and are automatically disconnected when the network is stopped. There is no need for explicit registration and de-registration of callbacks.
+## FPSignals and EventStreams represent events that can happen at any time.
+ Signals are continuous (they have a "now" value) while event streams are discrete (no "now" value).
+## An event network connects inputs (MIDI, GUI, OSC, timer, etc) to outputs (set argument to a synth, draw on screen, etc) via signals and event streams.
+## signals and event streams when placed in an event network are automatically connected to inputs and outputs when the network is compiled or started and are automatically disconnected when the network is stopped. There is no need for explicit registration and de-registration of callbacks.
 ::
 
-SECTION:: EventStreams: Time-ordered sequences of discrete events
+SECTION:: Event streams and Signals
 
-You can think of EventStreams as Collections of elements tagged with a time value. It is encoded with subclasses of EventStream. You can create a new link::Classes/EventSource:: which can emit a value using the 'fire' method. All the other classes are created using conbinator methods.
+Thw two main abstractions of this FRP library are event streams and signals.
+
+You can think of EventStreams as Collections of elements tagged with a time value. It is encoded with subclasses of EventStream.
+
+code::
+EventStream[A] ~ [ T(Time, A) ]
+::
 
 IMAGE::eventstream-1.png::
 
+Signals difer from EventStreams in that it's value is know at each moment in time.  Signals are encoded with the FPSignal class hierarchy. In FPLib signals are always step functions, that is they hold a value constant until the next value arrives.
+
 code::
-(
-x = EventSource();
-x.do{ |x| postln("I have received this: "++x) };
-x.fire(1);
-x.fire(5);
-)
+FPSignal[A] ~ Time -> A
 ::
+
+The main use for signals is to keep around the emmited value. This is handy for:
 
 list::
-##EventStreams fire events at given times.
-
-##EventStreams can be chained creating a network.
-
-##The start of the network is always an EventSource.
-
-##To react to these events you use the 'do' and 'doDef' method.
-
-##Only the functions f which are passed to 'do' and 'doDef' should cause side-effects. The rest of the network should be purely functional.
+## letting an event stream use previous values of some other signal,
+## letting an event stream use previous values of itself
+## Applying n-ary functions (which need to remember the last value of the other n-1 arguments whenever they get a value.
 ::
-
-If you need to remove the function later, store it in a variable:
-
-code::
-(
-x = EventSource();
-f = { |x| postln("Hello world: "++x) };
-x.do(f);
-x.fire(3)
-)
-
-(
-x.stopDoing(f);
-x.fire(5)
-)
-::
-
-You can assign a key to the function:
-
-code::
-(
-x = EventSource();
-x.doDef(\action1,{ |x| postln("Hello world: "++x) });
-x.fire(3)
-)
-::
-Replace the function at that key:
-code::
-(
-x.doDef(\action1,{ |x| postln("Goodbye world: "++x) });
-x.fire(7)
-)
-::
-Disable the function:
-code::
-(
-x.doDef(\action1);
-x.fire(6)
-)
-::
-
-Section:: Signals - continuous time, step functions
-
-Signals difer from EventStreams in that it's value is know at each moment in time.  Signals are encoded with the FPSignal class hierarchy. In the FP quark signals are always step functions, that is they hold a value constant until the next value arrives.
 
 image::signals.png::
 
-A Val is an FPSignal that cannot be changed
-code::
-x = Val(0.0);
-x.now
-::
-
-A Var is an FPSignal that can be changed
-code::
-x = Var(0.0);
-//current value
-x.now;
-//change value
-x.value_(3.3);
-x.now;
-::
-
-You can act on the changes of a signal:
-code::
-x.do{ |v| postln("something changed: "++v) };
-x.value_(5.3);
-::
-
-You can use the same methods as with EventSource for adding and removing actions: do, stopDoing, doDef.
-
-
-EventStreams and FPSignals are two reciprocal representations.
-
-You can transform an EventStream into an FPSignal by using 'hold' with an initial value:
+It's possible to create a signal from an event stream and vice-versa by using the 'changes' and 'hold' methods.
 
 code::
-(
-x = EventSource();
-y = x.hold(2.0);
-y.now
-)
-::
-
-And an FPSignal into an EventStream using changes:
-code::
-(
-x = Var(2.0);
-y = x.changes;
-)
+sig1 = es1.hold(0.0)
+es2 = sig2.changes
 ::
 
 SECTION:: Combinators
@@ -370,79 +287,62 @@ y.value_(3.0);
 z.value_(24.0);
 ::
 
-SECTION:: Creating and destroying networks:
+SECTION::Acessing last value
 
-On some FRP libraries, the FRP networks are like synthdefs, once they are constructed they can't be changed (but you can stop a network and start another one), e.g. reactive-banana in Haskell.  In scala's reactive-web 'Weak References' are used for managing objects life time. This means that mostly the user doesn't need to worry about destroying the functional networks. Unfortunately SuperCollider doesn't have weak links, so we have to manage the life cycles manually.
-
-Suppose we have the following network:
-
-IMAGE::remove-1.png::
+In a language such as Haskell it is possible to have mutually recursive values. These are values where they both appear in the definition of each other. This would let us define an event stream that depends on it's own past values by  defining it it terms of the signal obtained from it with hold. The code for an event stream that sums incoming values with it's last value looks like:
 
 code::
-(
-x = EventSource();
-y = x.collect(_*100).select(_>300);
-y.do{ |v| postln("I got a "++v) };
-)
+e2 = (+) <$> b <@> e1
+b = stepper 0 e2
 ::
 
-We can reset the original EventSource which will remove all the branches that start from it. Those branches will be garbage collected.
-
-image::remove-2.png::
+Unfortunatelly this cannot be done in SuperCollider since we cannot define mutually recursive variables. To get around this limitation we can directly probe the value of the signal obtained from hold using the 'now' method. The now method is essentially performing an IO operation which usually wouldn't be acceptable inside an event graph, but for this particular case it is very handy and doesn't have drawbacks. The code above then translates in FPLib to:
 
 code::
-(
-x = EventSource();
-y = x.collect(_*100).select(_>300);
-y.do{ |v| postln("I got a "++v) };
-x.fire(1);
-x.fire(4);
-//disconnect
-x.reset;
-//this will not be posted:
-x.fire(1);
-x.fire(4);
-)
+sum = { |a| a + sumSig.now } <%> nb1S;
+sumSig = sum.hold(0);
 ::
 
-If you want to disconnect only some branches you can use emphasis::remove:: :
-
-
- image::remove-4.png::
-
- code::
- (
-x = EventSource();
-~y1 = x.collect(_*100).select(_>300);
-~y1.do{ |v| postln("y1 got a "++v) };
-~y2 = x.collect(_*300); //you have to store the first created EventSource after x
-~y3 = ~y2.select(_>600);
-~y3.do{ |v| postln("y3 got a "++v) };
-x.fire(1);
-x.fire(4);
-~y2.remove;
-postln("y2 removed");
-//only y1 will post
-x.fire(4);
-)
-::
-
-We can also disconnect part of the network conditionally on the incoming values:
-
- image::remove-3.png::
+Because the call to now is done inside an anonymous function is delayed and therefore doesn't cause an error at the definition line.
 
 code::
+//sum with last value
 (
-x = EventSource();
-y = x.collect(_*100).takeWhile(_>300);
-y.do{ |v| postln("I got a "++v) };
-x.fire(4);
-x.fire(1);
-// 100 < 300 so y is disconnected.
-//this will not be posted:
-x.fire(5);
+//Setup GUI
+var nb1 = NumberBox();
+var nb2 = NumberBox();
+
+w = Window(bounds:Rect(200,200,200,100)).layout_(
+	HLayout( StaticText().string_("In:"), nb1, StaticText().string_("Out:"), nb2 )
+    );
+
+//Setup Event Network
+//network
+~networkDescription = ENDef({
+	var sumSig, sum, sumSig2;
+	var rate = 0.8;
+
+    //in
+    var nb1S = nb1.enInES;
+
+	sum = { |a| a + sumSig.now } <%> nb1S;
+	sumSig = sum.hold(0);
+
+	//out
+	nb2.enSinkValue( sumSig );
+
+});
+
+//compile network
+~network = EventNetwork(~networkDescription);
+
+//display guis and start network
+~network.start;
+w.front;
 )
 ::
+
+
 
 SECTION:: Common workflows
 
@@ -534,5 +434,81 @@ w = Window(bounds:Rect(200,200,200,100)).layout_(
 //associate each result EventSource with a synth
 ~result.do{ |v| ~synth.set(\freq, v.linlin(0.0,1.0,100.0,4000.0) ) };
 ~result.connect(~guiResult);
+)
+::
+
+
+
+SECTION:: Manual connection and diconnection of EventStreams and FPSignals
+
+Usually it is recommended to use EventNetwork for automatic management of connections. In any case it's also possible manage connections explicitelly.
+
+Suppose we have the following network:
+
+IMAGE::remove-1.png::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100).select(_>300);
+y.do{ |v| postln("I got a "++v) };
+)
+::
+
+We can reset the original EventSource which will remove all the branches that start from it. Those branches will be garbage collected.
+
+image::remove-2.png::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100).select(_>300);
+y.do{ |v| postln("I got a "++v) };
+x.fire(1);
+x.fire(4);
+//disconnect
+x.reset;
+//this will not be posted:
+x.fire(1);
+x.fire(4);
+)
+::
+
+If you want to disconnect only some branches you can use emphasis::remove:: :
+
+
+ image::remove-4.png::
+
+ code::
+ (
+x = EventSource();
+~y1 = x.collect(_*100).select(_>300);
+~y1.do{ |v| postln("y1 got a "++v) };
+~y2 = x.collect(_*300); //you have to store the first created EventSource after x
+~y3 = ~y2.select(_>600);
+~y3.do{ |v| postln("y3 got a "++v) };
+x.fire(1);
+x.fire(4);
+~y2.remove;
+postln("y2 removed");
+//only y1 will post
+x.fire(4);
+)
+::
+
+We can also disconnect part of the network conditionally on the incoming values:
+
+ image::remove-3.png::
+
+code::
+(
+x = EventSource();
+y = x.collect(_*100).takeWhile(_>300);
+y.do{ |v| postln("I got a "++v) };
+x.fire(4);
+x.fire(1);
+// 100 < 300 so y is disconnected.
+//this will not be posted:
+x.fire(5);
 )
 ::
