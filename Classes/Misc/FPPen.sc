@@ -139,7 +139,7 @@ PenDrawing {
     }
 }
 
-+ QUserView {
++ UserView {
 
     setDrawing { |drawing|
         ^IO{ { this.drawFunc = drawing; this.refresh }.defer }
@@ -147,7 +147,7 @@ PenDrawing {
 
 }
 
-+ QWindow {
++ Window {
 
     setDrawing { |drawing|
         ^IO{ { this.drawFunc = drawing; this.refresh }.defer }

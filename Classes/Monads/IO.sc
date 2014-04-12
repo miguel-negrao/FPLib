@@ -71,7 +71,7 @@ IO{
 
 }
 
-+ QWindow {
++ Window {
 	frontIO {
 		^IO{ this.front }
 	}
@@ -85,7 +85,7 @@ IO{
 	}
 }
 
-+ QView {
++ View {
 	frontIO {
 		^IO{ this.front }
 	}
