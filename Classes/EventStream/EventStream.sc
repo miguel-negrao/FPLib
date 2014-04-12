@@ -369,6 +369,11 @@ NothingES : EventSource {
 	|+| { |otherES|
 		^otherES
 	}
+	collect {}
+	select {}
+	inject {}
+	injectF {}
+	injectFSig {}
 
 }
 
