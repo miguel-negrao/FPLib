@@ -105,6 +105,14 @@ FPSignal {
     	^this.changes.bus( server, this.now )
     }
 
+	//patterns
+		//for patterns
+	embedInStream { arg inval;
+		inf.do {
+			this.now.embedInStream(inval);
+		}
+	}
+
     //EventNetwork related
     connectEN{ |object|
     	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
