@@ -53,3 +53,57 @@ VarProxy(\x, 24)
 VarProxy(\y, 24)
 
 */
+
+ENdef  {
+
+	classvar <>all;
+	var <>key;
+	var <eventNetwork;
+
+	*initClass { all = () }
+
+	*new { | key, object |
+		var check = this.checkArgs(\ENdef, \new, [key, object], [Symbol, [Function,Nil]]);
+
+		var makeNew = { |f|
+			var x = this.basicNew( key, EventNetwork(ENDef(f)) );
+			all.put(key, x);
+			x
+		};
+		var en = all.at(key);
+		^if( en.isNil) {
+			if(object.isNil) {
+				Error("ENdef no EN stored and no object to store").throw
+			} {
+				makeNew.(object)
+			}
+		} {
+			if( object.notNil ) {
+				var x;
+				if(en.eventNetwork.active) { en.eventNetwork.stop };
+				x = makeNew.(object);
+				x.start;
+				x
+
+			} {
+				en
+			}
+		}
+	}
+
+	*basicNew{ |key, en|
+			^super.newCopyArgs(key, en)
+	}
+
+	start{
+		eventNetwork !? _.start
+	}
+
+	stop{
+		eventNetwork !? _.stop
+	}
+
+
+
+}
+		

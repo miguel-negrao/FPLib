@@ -22,7 +22,9 @@
 
 EventNetwork {
 	var <actuate, //IO[Unit]
-	<pause; //IO[Unit]
+	<pause, //IO[Unit]
+	<finalIOES,
+	<active = false;
 
 	//networkDescription : Writer( Unit, Tuple3([IO(IO())], [EventStream[IO[Unit]]], [IO] ) )
 	//                                     eventHandlers         reactimates        IOLater
@@ -55,10 +57,10 @@ EventNetwork {
                 unregister.do(_.unsafePerformIO )
             }
         };
-        var actuate = doFinalIO >>=| registerIO >>=| iosLater;
+		var actuate = doFinalIO >>=| registerIO >>=| iosLater;
         var pause = stopDoingFinalIO >>=| unregisterIO;
 
-		var return = super.newCopyArgs( actuate, pause );
+		var return = super.newCopyArgs( actuate, pause, finalIOES );
 
 		if( disableOnCmdPeriod ) {
 			CmdPeriod.add(return)
@@ -72,26 +74,28 @@ EventNetwork {
     *returnUnit { ^this.returnDesc(Unit) }
 	*makePure { |a| ^this.returnDesc(a) }
 
-	actuateNow { actuate.unsafePerformIO }
-	pauseNow { pause.unsafePerformIO }
+	start {
+		if(active.not) {
+			actuate.unsafePerformIO
+		};
+		active = true;
+	}
+	stop {
+		if(active) {
+			pause.unsafePerformIO
+		};
+		active = false;
+	}
 
 	cmdPeriod { this.pauseNow }
 
-	//pick your favorite sytax:
+	//pick your favorite syntax:
 	run { |bool|
 		if( bool ) {
 			this.actuateNow
 		} {
 			this.pauseNow
 		}
-	}
-
-	start {
-		this.actuateNow
-	}
-
-	free {
-		this.pauseNow
 	}
 
 	*makeES { |addAction, removeAction|
