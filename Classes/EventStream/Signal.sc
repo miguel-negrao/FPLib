@@ -370,7 +370,7 @@ FPSignal {
     }
 
 
-    switch2 { |f, initialSignal|
+    switchTo { |f, initialSignal|
 		this.checkArgs(FPSignal, "switch", [f], [Function] );
         ^FlatCollectedFPSignal( this, f, initialSignal)
     }

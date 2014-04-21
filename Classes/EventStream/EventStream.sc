@@ -121,7 +121,7 @@ EventSource : EventStream {
 		^FoldedFES(this, initial).hold(initial);
 	}
 
-    switch2 { |f, initialState|
+    switchTo { |f, initialState|
         ^FlatCollectedES( this, f, initialState)
     }
 
