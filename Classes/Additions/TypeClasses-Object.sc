@@ -120,6 +120,7 @@
 [].sequenceMonad(Option)
 */
 
+//Instances
 + Array {
 
 //Monad
@@ -129,7 +130,14 @@
 
 //Monoid
     |+| { |b| ^this ++ b }
-    *zero { [] }
+    *zero { ^[] }
+	mreduce { |class|
+		^if(this.size == 0) {
+			class.zero
+		} {
+			this.inject(this.at(0).class.zero, _ |+| _ )
+		}
+	}
 
 //Monad related
     sequenceM { |monadClass|
@@ -184,10 +192,48 @@
         }
     }
 
+
+
 }
 
 
-//Instances
+//(1:Some(2), 3:Some(4)).sequence
++ Dictionary {
+
+	traverseWithKey { |f, class|
+		var x = this.asSortedArray;
+		var y = x.traverse( { |xs| { |b| [xs[0],b] } <%> f.(*xs) }, class);
+		^{ |array| Dictionary.with(*array.collect(_->_)) } <%> y
+	}
+
+	traverse { |f, class|
+		var x = this.asSortedArray;
+		var y = x.traverse( { |xs| { |b| [xs[0],b] } <%> f.(xs[1]) }, class);
+		^{ |array| this.class.with(*array.collect{ |xs| xs[0]->xs[1] }) } <%> y
+	}
+
+	//(1:2) |+| (3:4)
+	//[(1:2), (3:4)].mreduce
+	//[(1:2), ()].mreduce
+	*zero{
+		^this.class.new
+	}
+
+	|+|{ |b|
+		^this.merge(b)
+	}
+
+	//(1:2,3:4).toTupleArray
+	toTupleArray {
+		^this.asSortedArray.collect{ |xs| T(xs[0], xs[1]) }
+	}
+
+	//Dictionary.fromTupleArray([T(1,2),T(3,4)])
+	*fromTupleArray { |array|
+		^this.with(*array.collect{ |tup| tup.at1 -> tup.at2 })
+	}
+
+}
 
 + SimpleNumber {
 
@@ -209,12 +255,3 @@
     *zero { ^"" }
 }
 
-+ Array {
-	mreduce { |class|
-		^if(this.size == 0) {
-			class.zero
-		} {
-			this.inject(this.at(0).class.zero, _ |+| _ )
-		}
-	}
-}
