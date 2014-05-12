@@ -54,6 +54,11 @@ ENDef {
 		ENDef.appendToResult( this.reactimate );
 	}
 
+	enOut2 {
+		ENDef.appendToResult( this.reactimate2 );
+	}
+
+
 	withKey { |key|
 		^this.collect{ |v| [key,v] }
 	}

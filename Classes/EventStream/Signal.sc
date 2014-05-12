@@ -122,6 +122,10 @@ FPSignal {
 		^Writer( Unit, Tuple3([],[this.changes],[this.now]) )
 	}
 
+	reactimate2{ //this stream should returns IOs
+		^Writer( Unit, Tuple3([],[this.changes],[]) )
+	}
+
 	asENInput {
 		^Writer(this, Tuple3([],[],[]) )
 	}

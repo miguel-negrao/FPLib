@@ -163,7 +163,7 @@ FRPGUICode {
 + MKtlElement {
 
 	asENInput {
-        var es = Var(0.0);
+        var es = Var(this.value);
 		var func = { |v| es.value_(v.value) };
 		var addHandler = IO{ this.addAction(func); IO{ this.removeAction(func) } };
 		^Writer( es, Tuple3([addHandler],[],[]) )

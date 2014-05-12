@@ -41,7 +41,7 @@ EventNetwork {
 		};
 
 		//reactimates
-		var finalIOES = tuple.at2.reduce('|');
+		var finalIOES = tuple.at2.mreduce(EventSource);
 		var f  = { |v| v.unsafePerformIO };
 		var doFinalIO = IO{ finalIOES.do(f) };
 		var stopDoingFinalIO = IO{ finalIOES.stopDoing(f) };
