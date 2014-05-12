@@ -123,6 +123,11 @@ Tuple2{
     |+| { |b| ^Tuple2( this.at1 |+| b.at1, this.at2 |+| b.at2 ) }
     zero { |class1, class2| Tuple2( class1.zero, class2.zero) }
 
+//Traversable
+	//T(1, Some(2)).sequence
+	traverse { |f|
+		^{ |fa| Tuple2(this.at1, fa) } <%> f.(this.at2)
+	}
 	//math
 	+ { |b| b = b.asTuple2; ^Tuple2( this.at1 + b.at1, this.at2 + b.at2 ) }
 	- { |b| b = b.asTuple2; ^Tuple2( this.at1 - b.at1, this.at2 - b.at2 ) }
