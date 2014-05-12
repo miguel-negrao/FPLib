@@ -47,9 +47,6 @@ NNdef(\x, {
 }).play
 )
 
-NNdef(\x).controlKeysValues
-s.dumpOSC(1)
-
 // 3 knobs -> 3 freqs
 (
 NNdef(\x, {
@@ -57,6 +54,25 @@ NNdef(\x, {
 	SinOsc.ar( freqs ).sum * 0.1
 }).play
 )
+
+//Guis
+(
+NNdef(\x, {
+	var freq = Slider().front.enIn.nexp(100,1000).enKr;
+	SinOsc.ar( freq ) * 0.1
+}).play
+)
+
+//osc
+(
+NNdef(\x, {
+	var freq = OSCFunc.enIn("/freq",initialValue:["/freq",0.0]).collect{ |msg|  msg[1].linexp(0.0,1.0,100,1000) }.enKr;
+	SinOsc.ar( freq ) * 0.1
+}).play
+)
+
+n = NetAddr("127.0.0.1", NetAddr.langPort); // local machine
+n.sendMsg("/freq", 0.5);
 
 
 NNdef(\x).clear
