@@ -51,13 +51,12 @@ NNdef : Ndef {
 
 + FPSignal {
 
-	enKr {
+	enKr { |lag = 0.1|
 
 		var controlName = "frpControl%".format(NNdef.nextControl).asSymbol;
 		var thisUdef = NNdef.buildCurrentNNdefKey;
 		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut2;
-		^controlName.kr(this.now)
-
+		^controlName.kr(this.now, lag)
 	}
 
 }
@@ -65,13 +64,20 @@ NNdef : Ndef {
 
 + EventSource {
 
-	enKr { |initialValue = 0|
+	enKr { |lag = 0.1, initialValue=0|
 
 		var controlName = "frpControl%".format(NNdef.nextControl).asSymbol;
 		var thisUdef = NNdef.buildCurrentNNdefKey;
-		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut2;
-		^controlName.kr(initialValue)
+		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut;
+		^controlName.kr(initialValue, lag)
+	}
 
+	enTr { |initialValue=0|
+
+		var controlName = "frpControl%".format(NNdef.nextControl).asSymbol;
+		var thisUdef = NNdef.buildCurrentNNdefKey;
+		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut;
+		^controlName.tr(initialValue)
 	}
 
 }
