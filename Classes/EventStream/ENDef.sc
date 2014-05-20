@@ -11,6 +11,7 @@ ENDef {
 	}
 
 	*appendToResult { |writer|
+		if( tempBuilder.isNil ) { Error("Ran ENDef.appendToResult with uninitialized ENDef.tempBuilder").throw };
 		tempBuilder = tempBuilder |+| writer.w;
 		^writer.a
 	}
