@@ -16,6 +16,27 @@ NNdef(\x, {
 }).play
 )
 
+//different sources
+(
+k = MIDIMKtl('nnkn0').elements;
+NNdef(\x)[0] = {
+	var freq = k[\sl][0][0].enIn.nexp(100,1000).enKr;
+	Saw.ar( freq ) * 0.1
+};
+)
+(
+k = MIDIMKtl('nnkn0').elements;
+NNdef(\x)[1] = \filter -> { |in|
+	var freq = k[\sl][0][1].enIn.nexp(100,8000).enKr;
+	RLPF.ar( in, freq )
+};
+)
+
+NNdef(\x)[1] = nil
+NNdef(\x)[0] = nil
+NNdef(\x).play
+NNdef(\x).clear
+
 //on changing function event network is automatically destroyed and recreated
 (
 NNdef(\x, {
@@ -49,8 +70,9 @@ NNdef(\x, {
 
 // 3 knobs -> 3 freqs
 (
+k = MIDIMKtl('nnkn0').elements;
 NNdef(\x, {
-	var freqs = MIDIMKtl('bcr20000').elements[\kn][0][..8].collect{ |e| e.enIn.nexp(100,1000).enKr };
+	var freqs = k[\kn][0][..2].collect{ |e| e.enIn.nexp(100,1000).enKr };
 	SinOsc.ar( freqs ).sum * 0.1
 }).play
 )
