@@ -216,7 +216,7 @@
 	//[(1:2), (3:4)].mreduce
 	//[(1:2), ()].mreduce
 	*zero{
-		^this.class.new
+		^this.new
 	}
 
 	|+|{ |b|

@@ -121,7 +121,7 @@ Tuple2{
 
 //Monoid
     |+| { |b| ^Tuple2( this.at1 |+| b.at1, this.at2 |+| b.at2 ) }
-    zero { |class1, class2| Tuple2( class1.zero, class2.zero) }
+    *zero { |class1, class2| ^Tuple2( class1.zero, class2.zero) }
 
 //Traversable
 	//T(1, Some(2)).sequence
@@ -177,7 +177,7 @@ Tuple3{
 
 //Monoid
     |+| { |b| ^Tuple3( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3 ) }
-    zero { |class1, class2, class3| Tuple3( class1.zero, class2.zero, class3.zero) }
+    *zero { |class1, class2, class3| ^Tuple3( class1.zero, class2.zero, class3.zero) }
 }
 
 Tuple4{
@@ -206,7 +206,7 @@ Tuple4{
 
 //Monoid
     |+| { |b| ^Tuple3( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3, this.at4 |+| b.at4 ) }
-    zero { |class1, class2, class3, class4| Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
+    *zero { |class1, class2, class3, class4| ^Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
 }
 
 + SimpleNumber {

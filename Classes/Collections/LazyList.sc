@@ -315,7 +315,7 @@ LazyListCons : LazyList {
 		^this.append(that)
 	}
 
-	zero { ^LazyListEmpty }
+	*zero { ^LazyListEmpty }
 
 	add { |that|
 		^this.append( LazyListCons(that,LazyListEmpty) );
@@ -363,7 +363,7 @@ LazyListEmpty : LazyList {
 	|+| { |that|
 		^this.append(that)
 	}
-	zero { ^LazyListEmpty }
+	*zero { ^LazyListEmpty }
 	*add { |that|
 		^LazyListCons(that, LazyListEmpty)
 	}
