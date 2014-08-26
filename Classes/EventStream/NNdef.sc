@@ -16,7 +16,7 @@ NNdef : Ndef {
 	put { | index, obj, channelOffset = 0, extraArgs, now = true |
 		var currentEN, newEN;
 		NNdef.buildFRPControlNum = 0;
-		NNdef.buildFRPControlIndex = index;
+		NNdef.buildFRPControlIndex = index ?? 0;
 		NNdef.buildCurrentNNdefKey = key;
 		ENDef.tempBuilder = T([],[],[]);
 		index = index ?? 0;
@@ -53,6 +53,7 @@ NNdef : Ndef {
 		var controlName = NNdef.nextControl;
 		var thisUdef = NNdef.buildCurrentNNdefKey;
 		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut2;
+		NNdef(thisUdef).set(controlName, this.now);
 		^controlName.kr(this.now, lag)
 	}
 
@@ -73,7 +74,7 @@ NNdef : Ndef {
 
 		var controlName = NNdef.nextControl;
 		var thisUdef = NNdef.buildCurrentNNdefKey;
-		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut;
+		this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v); NNdef(thisUdef).unset(controlName) } }.enOut;
 		^controlName.tr(initialValue)
 	}
 
