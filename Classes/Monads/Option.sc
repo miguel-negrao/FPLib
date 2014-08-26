@@ -94,6 +94,10 @@ Some : Option {
     printOn { arg stream;
         stream << this.class.name << "(" << value << ")";
     }
+
+	storeArgs {
+		^[value]
+	}
 }
 
 None : Option{
