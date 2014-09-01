@@ -3,7 +3,7 @@ FPLib
 
 Functional Programming library for SuperCollider
 
-Requirments
+Requirements
 ===========
 
 SuperCollider 3.7dev
