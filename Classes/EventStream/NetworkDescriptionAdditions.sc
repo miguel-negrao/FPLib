@@ -128,6 +128,34 @@ FRPGUICode {
 	*enInES{ |path, srcID, recvPort, argTemplate, dispatcher|
 		^ENDef.appendToResult( this.asENInputES(path, srcID, recvPort, argTemplate, dispatcher) );
 	}
+
+	*asENInputESFull { |path, srcID, recvPort, argTemplate, dispatcher|
+        var es = EventSource();
+        var addHandler = IO{
+            var f = { |...args| es.fire(args) };
+            var osc = OSCFunc(f, path, srcID, recvPort, argTemplate, dispatcher);
+			IO{ osc.free }
+		};
+        ^Writer( es, Tuple3([addHandler],[],[]) )
+    }
+
+	*asENInputFull { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
+		var es = Var(initialValue);
+        var addHandler = IO{
+            var f = { |...args| es.value_(args) };
+            var osc = OSCFunc(f, path, srcID, recvPort, argTemplate, dispatcher);
+			IO{ osc.free }
+		};
+        ^Writer( es, Tuple3([addHandler],[],[]) )
+    }
+
+	*enInFull { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
+		^ENDef.appendToResult( this.asENInputFull(path, srcID, recvPort, argTemplate, dispatcher, initialValue) );
+	}
+
+	*enInESFull{ |path, srcID, recvPort, argTemplate, dispatcher|
+		^ENDef.appendToResult( this.asENInputESFull(path, srcID, recvPort, argTemplate, dispatcher) );
+	}
 }
 
 + QView {

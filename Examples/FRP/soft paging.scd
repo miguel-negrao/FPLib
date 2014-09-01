@@ -19,7 +19,9 @@ q.but2 = Button();
 q.text = StaticText();
 q.window = Window().layout_(HLayout(q.sl, q.but1, q.but2, q.text));
 
-q.numPages = 10;
+q.defaults = { rrand(0.0,1.0) } ! 10;
+
+q.numPages = q.defaults.size;
 
 q.network = EventNetwork(ENDef({
 	//get guis as event streams
@@ -42,7 +44,7 @@ q.network = EventNetwork(ENDef({
 	//page.enDebug("page");
 
 	//paged slider
-	var x = slE.paged(page, q.numPages, 0.0);
+	var x = slE.paged(page, q.defaults);
 	x.at1.collect{ |es, i|
 		es.enDebug("page "++(i+1))
 	};

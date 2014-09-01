@@ -282,10 +282,12 @@ EventSource : EventStream {
 		^this.storePrevious.select{ |tup| tup.at1 != tup.at2 }.collect(_.at2)
     }
 
-	paged { |pageNumES, numPages, default= 0.0|
+	paged { |pageNumES, defaults|
 		//typecheck
 		var check = this.checkArgs(\EventSource, \paged,
-			[pageNumES, numPages, default], [EventSource, SimpleNumber, SimpleNumber]);
+			[pageNumES, defaults], [EventSource, Array]);
+
+		var numPages = defaults.size;
 
 		var valueIn = this.collect{ |x|
 			{ |state|
@@ -307,12 +309,12 @@ EventSource : EventStream {
 		};
 
 		var process = valueIn.merge(pageChange).injectF(
-			(pageNum:0, values: (default ! numPages), newValue:None(), pageChange:None() )
+			(pageNum:0, values: defaults, newValue:None(), pageChange:None() )
 		);
 
 		//var d1 = process.enDebug("process");
 		var pageChangeES = process.collect(_.at(\pageChange)).selectSome;
-		var pages = numPages.collect{ |n|
+		var pages = defaults.collect{ |v,n|
 			process
 			.select{ |x|
 				x.at(\newValue)
