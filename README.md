@@ -3,6 +3,13 @@ FPLib
 
 Functional Programming library for SuperCollider
 
+Requirments
+===========
+
+SuperCollider 3.7dev
+
+If using SuperCollider 3.6 then also install [some additions](https://github.com/miguel-negrao/sc3.6additions).
+
 Instalation
 ==========
 
