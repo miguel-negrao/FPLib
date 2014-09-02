@@ -6,9 +6,13 @@ Functional Programming library for SuperCollider
 Requirements
 ===========
 
-SuperCollider 3.7dev
+* SuperCollider 3.7dev
 
 If using SuperCollider 3.6 then also install [some additions](https://github.com/miguel-negrao/sc3.6additions).
+
+* JitLib quark
+* JITLibExtensions quarks.
+* [Modality Library](https://github.com/ModalityTeam/Modality-toolkit)
 
 Instalation
 ==========
