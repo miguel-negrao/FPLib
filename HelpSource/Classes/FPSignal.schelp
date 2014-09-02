@@ -124,7 +124,7 @@ y.do(_.postln);
 x.value_(100)
 ::
 
-method::switch
+method::switchTo
 argument::f
 f: A => FPSignal[B]
 discussion::
@@ -135,7 +135,7 @@ code::
 (
 x = Var(1);
 y = Var(2);
-z = x.switch{ |x| y.collect{ |y| [x,y] } };
+z = x.switchTo{ |x| y.collect{ |y| [x,y] } };
 z.do(_.postln);
 )
 
