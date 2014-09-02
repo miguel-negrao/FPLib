@@ -34,15 +34,13 @@ w = Window(bounds:Rect(200,200,200,100)).layout_(
 //Setup Event Network
 //network
 ~networkDescription = ENDef({
-	var sumSig, sum, sumSig2;
-	var rate = 0.8;
+	var sumSig, sum;
 
     //in
     var nb1S = nb1.enInES;
 
 	sum = { |a| a + sumSig.now } <%> nb1S;
 	sumSig = sum.hold(0);
-	sumSig2 = (_+_) <%> sumSig;
 
 	//out
 	nb2.enSinkValue( sumSig );
