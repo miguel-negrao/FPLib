@@ -20,7 +20,7 @@
     one wants to make an instance of some type class.
 */
 
-+ QView {
++ View {
 
 	mouseClicksENInputES {
 		var es = EventSource();
