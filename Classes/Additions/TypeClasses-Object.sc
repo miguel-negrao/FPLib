@@ -255,3 +255,13 @@
     *zero { ^"" }
 }
 
++ Boolean {
+
+//Monoid
+    |+| { |b|
+        ^this && b
+    }
+
+    *zero { ^true }
+}
+

@@ -28,6 +28,8 @@ Option {
 
     *makePure { |a| ^Some(a) }
 
+	*zero { ^None() }
+
     == { |ob|
         ^if(ob.isKindOf(Option) ) {
             this.match(
@@ -78,6 +80,8 @@ Some : Option {
     collect{ |f| ^Some(f.(this.get)) }
 
     >>= { |f| ^f.(this.get) }
+
+	|+| { |o| ^o.collect{ |x| value |+| x } }
 
     select{ |p| ^if(p.(this.get)){ this }{ None() } }
 
@@ -134,6 +138,8 @@ None : Option{
     collect{}
 
     >>= {}
+
+	|+| {}
 
     select{}
 
