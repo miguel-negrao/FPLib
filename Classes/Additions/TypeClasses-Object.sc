@@ -193,7 +193,9 @@
     }
 
 
-
+	*asDictFromTuples {
+		^Dictionary.with(*this.collect{ |tup| tup.at1 -> tup.at2 })
+	}
 }
 
 
@@ -220,7 +222,7 @@
 	}
 
 	|+|{ |b|
-		^this.merge(b)
+		^this.merge(b,{|x,y| x |+| y})
 	}
 
 	//(1:2,3:4).toTupleArray
