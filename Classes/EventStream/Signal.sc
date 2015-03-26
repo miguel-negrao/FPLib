@@ -163,7 +163,6 @@ FPSignal {
     //For these methods this should be signal with the time value
     integral { |tsig|
 		var check = this.checkArgs(FPSignal, "integral", [tsig], [FPSignal] );
-		var a1 = "a1".postln;
 		var x = T(_,_) <%> this <@> tsig.changes; //only updates when tsig updates
 
 		var y = x.inject(nil, {|state, x|
@@ -381,20 +380,20 @@ FPSignal {
 
      <@ { |es|
 		this.checkArgs(FPSignal, "<@", [es], [EventStream] );
-        //apply a signal with a function to every incoming event
+        //sample signal at every incoming event
         ^es.collect{ |x| this.now }
     }
 
 	//alias
 	sampleOn { |es|
 		this.checkArgs(FPSignal, "sampleOn", [es], [EventStream] );
-        //apply a signal with a function to every incoming event
+        //sample signal at every incoming event
         ^es.collect{ |x| this.now }
     }
 
 
     switchTo { |f, initialSignal|
-		this.checkArgs(FPSignal, "switch", [f], [Function] );
+		this.checkArgs(FPSignal, "switchTo", [f], [Function] );
         ^FlatCollectedFPSignal( this, f, initialSignal)
     }
 
