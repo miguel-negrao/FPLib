@@ -113,7 +113,9 @@ Tuple2{
         ^Tuple2(this.at1,v)
     }
 
-
+	bicollect { |f,g|
+		^Tuple2( f.(at1), g.(at2) )
+	}
 //Functor
 	collect { |f|
 		^Tuple2( f.(at1), f.(at2) )
