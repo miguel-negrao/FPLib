@@ -3,7 +3,7 @@
   summary: "Functional Programming library for SuperCollider",
   version: "0.1.0",
   schelp: "FP Lib",
-  dependencies: ["JITLibExtensions","JitLib","Modality-toolkit"],
+  dependencies: ["JITLibExtensions","Modality-toolkit"],
   license: "GPL3",
   copyright: "Miguel Negrão 2012-2015"
 )
