@@ -60,10 +60,6 @@
     pure { |class| ^class.makePure(this) }
     *pure { |class| ^class.makePure(this) }
 
-    join {
-        ^this >>= { |x| x }
-    }
-
 //Monoid
 	|+| { |b| Object.typeClassError("Monoid").throw }
     //args can be used for hints about the type of the zero
