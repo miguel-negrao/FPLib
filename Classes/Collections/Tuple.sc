@@ -105,6 +105,10 @@ Tuple2{
 		stream << "(" << at1 << ", " << at2 << ")"
 	}
 
+	storeArgs {
+		^[at1, at2]
+	}
+
     at1_{ |v|
         ^Tuple2(v,this.at2)
     }
@@ -139,6 +143,7 @@ Tuple2{
 	asTuple2{
 		^this
 	}
+
 }
 
 Tuple3{
@@ -158,6 +163,10 @@ Tuple3{
 
 	printOn { arg stream;
 		stream << "(" << at1 << ", " << at2 << ", " << at3 <<")"
+	}
+
+	storeArgs {
+		^[at1, at2, at3]
 	}
 
     at1_{ |v|
@@ -199,6 +208,10 @@ Tuple4{
 
 	printOn { arg stream;
 		stream << "(" << at1 << ", " << at2 << ", " << at3 << ", " << at4 <<")"
+	}
+
+	storeArgs {
+		^[at1, at2, at3, at4]
 	}
 
 //Functor
