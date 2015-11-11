@@ -31,6 +31,8 @@ EventStream{
 	classvar <doFuncs;
 	classvar <>debugInternal = false;
 	classvar <>buildFlatCollect;
+	var <nodes;
+	var <pureFunc;
 
 	/*
 	How buildFlatCollect works:
@@ -77,6 +79,8 @@ EventSource : EventStream {
     		EventStream.buildFlatCollect[lastIndex] = EventStream.buildFlatCollect[lastIndex].add(this)
     	};
         listeners = [];
+		nodes = [];
+		pureFunc = None();
     }
 
 	*newNoLog {
@@ -85,6 +89,8 @@ EventSource : EventStream {
 
 	initNoLog {
         listeners = [];
+		nodes = [];
+		pureFunc = None();
     }
 
     addListener { |f|
@@ -98,10 +104,6 @@ EventSource : EventStream {
     reset { listeners = []; ^Unit }
 
 	//private
-	proc { |initialState, f|
-		^ChildEventSource( initialState ).initChildEventSource(this,f)
-	}
-
     select { |f|
         ^SelectedES(this, f)
     }
@@ -392,13 +394,14 @@ HoldFPSignal : FPSignal {
 		changes = eventStream;
 		now = initialValue;
 		listener = { |v| now = v};
-		eventStream.addListener( listener )
+		eventStream.addListener( listener );
+		nodes = [eventStream];
 	}
 
 }
 
 ChildEventSource : EventSource {
-    var <state;
+    var <>state;
     var <parent;
     var <listenerFunc;
     var <handler; //: (T, S) => S
@@ -412,14 +415,16 @@ ChildEventSource : EventSource {
     }
 
 	//private
-    initChildEventSource { |p,h, initialFunc|
+    initChildEventSource { |p,h, pureFuncArg|
         parent = p;
         handler = h;
         listenerFunc = { |value|
         	//("doing listener func of "++this.hash).postln;
         	state = handler.value(value, state)
         };
-        parent.addListener(listenerFunc)
+        parent.addListener(listenerFunc);
+		nodes = [p];
+		pureFunc = pureFuncArg.asOption;
     }
 
     remove {
@@ -437,7 +442,7 @@ CollectedES : ChildEventSource {
     init { |parent, f|
         this.initChildEventSource(parent, { |event|
             this.fire( f.(event) );
-        })
+        }, f)
     }
 }
 
@@ -452,7 +457,7 @@ SelectedES : ChildEventSource {
              if( f.(event) ) {
                  this.fire( event )
              }
-        })
+        },f)
     }
 }
 
@@ -467,7 +472,7 @@ FoldedES : ChildEventSource {
              var next = f.(state, event);
              this.fire( next );
              next
-        })
+        },f)
     }
 }
 
@@ -522,7 +527,7 @@ FlatCollectedES : ChildEventSource {
 			nextESEnd !? _.addListener( thunk );
 			//store the new chain
 			Tuple2(listOfCreatedObjects, nextESEnd);
-		})
+		},f)
     }
 
         remove {
@@ -547,7 +552,7 @@ TakeWhileES : ChildEventSource {
             } {
                 parent.removeListener(listenerFunc);
             }
-        })
+        },f)
     }
 }
 
@@ -561,5 +566,6 @@ MergedES : EventSource {
         var thunk = this.fire(_);
         parent1.addListener( thunk );
         parent2.addListener( thunk );
+		nodes = [parent1, parent2];
     }
 }

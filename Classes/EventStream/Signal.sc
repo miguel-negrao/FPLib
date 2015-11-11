@@ -27,6 +27,9 @@
 
 
 FPSignal {
+	//for introspection on the FRP graph
+	var <nodes;
+	var <pureFunc;
 
 	*new {
 	   ^super.new.initFPSignal
@@ -37,6 +40,8 @@ FPSignal {
     	if( lastIndex != -1) {
     		EventStream.buildFlatCollect[lastIndex] = EventStream.buildFlatCollect[lastIndex].add(this)
     	};
+		nodes = [];
+		pureFunc = None();
 	}
 
 	asFPSignal {
@@ -405,39 +410,42 @@ FPSignal {
 }
 
 SignalChangeES : EventSource {
-	var ref;
+	var ref; //what is this ref used for ? looks like a memory managment thing.
 
 	//this should not be logged into EventStream.buildFlatCollect
-	*new { |handler| ^super.newNoLog.initSignalChange(handler) }
+	*new { |handler, parent| ^super.newNoLog.initSignalChange(handler, parent) }
 
-    initSignalChange { |handler|
-    	ref = handler
+    initSignalChange { |handler,parent|
+    	ref = handler;
+		nodes = [parent]
     }
 }
 
 ChildFPSignal : FPSignal {
-    var <state;
+    var <>state;
     var <parent;
     var <listenerFunc;
     var <handler; //: (T, S) => S
     var <changes;
-    var <now;
+    var <>now;
 
     *new{ |initialState, initialFunc|
         ^super.new
     }
 
-    initChildFPSignal { |p,h, initialState, initialFunc|
+    initChildFPSignal { |p,h, initialState, initialFunc, pureFuncArg|
     	state = initialState;
     	now = initialFunc.( initialState );
-        changes = SignalChangeES();
+        changes = SignalChangeES(nil, this);
         parent = p;
         handler = h;
         listenerFunc = { |value|
          	//("listnerFunc called with value: "++value).postln;
         	state = handler.value(value, state)
         };
-        parent.changes.addListener( listenerFunc )
+        parent.changes.addListener( listenerFunc );
+		nodes = [parent];
+		pureFunc = pureFuncArg.asOption;
     }
 
     remove {
@@ -459,7 +467,7 @@ CollectedFPSignal : ChildFPSignal {
             var x = f.(event);
             now = x;
             changes.fire( x );
-        }, parent.now, f)
+        }, parent.now, f, f)
     }
 }
 
@@ -471,7 +479,7 @@ ApplyFPSignal : FPSignal {
     }
 
     initApplySignalFPSignal { |farg, xarg|
-		changes = SignalChangeES();
+		changes = SignalChangeES(nil, this);
 		f = farg;
 		x = xarg;
 		fval = f.now;
@@ -489,6 +497,8 @@ ApplyFPSignal : FPSignal {
 		};
 		f.changes.addListener( flistener );
 		x.changes.addListener( xlistener );
+		nodes = [f,x];
+		pureFunc = Some(farg);
 	}
 
     remove {
@@ -557,7 +567,7 @@ FlatCollectedFPSignal : ChildFPSignal {
 			//store the new chain
 			Tuple2(listOfCreatedObjects, nextSigEnd);
 
-		}, initialState, { |x| x.at2.now })
+		}, initialState, { |x| x.at2.now }, f)
 	}
 }
 
@@ -576,7 +586,7 @@ SelfSwitchFPSignal : ChildFPSignal {
 
 		now = initSignal.now.at1;
 
-		changes = SignalChangeES();
+		changes = SignalChangeES(nil, this);
 
 		parent = initSignal;
 
@@ -639,6 +649,8 @@ SelfSwitchFPSignal : ChildFPSignal {
 			signal.changes.addListener( listenerFunc );
 		};
 		register.( initSignal );
+		nodes = [initSignal];
+		pureFunc = Some(f);
 
 	}
 }
@@ -691,20 +703,20 @@ FlatCollectedFPSignalHybrid : ChildFPSignal {
 			//store the new chain
 			Tuple2(listOfCreatedObjects, nextSigEnd);
 
-        }, initialState, { |x| x.at2.now })
+        }, initialState, { |x| x.at2.now },f)
     }
 
 	initChildFPSignal { |p,h, initialState, initialFunc|
     	state = initialState;
     	now = initialFunc.( initialState );
-        changes = SignalChangeES();
+        changes = SignalChangeES(nil, this);
         parent = p;
         handler = h;
         listenerFunc = { |value|
          	//("listnerFunc called with value: "++value).postln;
         	state = handler.value(value, state)
         };
-        parent.addListener( listenerFunc )
+        parent.addListener( listenerFunc );
     }
 
     remove {
@@ -726,7 +738,7 @@ FoldedFPSignal : ChildFPSignal {
             now = next;
             changes.fire( next );
             next
-        }, initfold, { |x| x })
+        }, initfold, { |x| x }, f)
     }
 }
 
@@ -748,7 +760,7 @@ TakeWhileFPSignal : ChildFPSignal {
             } {
                 this.remove;
             }
-        }, Unit, { parent.now })
+        }, Unit, { parent.now }, f)
     }
 }
 
@@ -757,9 +769,10 @@ Val : FPSignal {
 	var <now;
 	var <changes;
 
-	*new { |now| ^super.newCopyArgs(now).initVal }
+	*new { |now| ^super.new.initVal(now) }
 
-	initVal {
+	initVal { |argNow|
+		now = argNow;
 		changes = EventSource();
 	}
 }
