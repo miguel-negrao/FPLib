@@ -303,7 +303,7 @@ EventSource : EventStream {
 			{ |state|
 				if( state.pageNum != n ) {
 					(pageNum: n, values: state.at(\values),
-						newValue: None(), pageChange: Some( state.at(\values).at(n) ) )
+						newValue: None(), pageChange: Some( T(n, state.at(\values).at(n) ) ) )
 				} {
 					state
 				}
