@@ -194,6 +194,14 @@ LazyListCons : LazyList {
 		^tailEvaluated ?? { tailEvaluated = tailFunc.value; tailEvaluated }
 	}
 
+	last {
+		^if(this.tail == LazyListEmpty) {
+			head
+		}{
+			this.tail.last
+		}
+	}
+
 	match{ |fempty, fcons|
 		^fcons.value(head, this.tail)
 	}
@@ -203,6 +211,18 @@ LazyListCons : LazyList {
 		    LazyListEmpty
 		} {
 			LazyListCons( head, this.tail.take(n-1) )
+		}
+	}
+
+	at { |n|
+		^if(n < 0) {
+			Error("LazyList#at : n < 0").throw
+		} {
+			if(n == 0){
+				^head
+			} {
+				this.tail.at(n-1)
+			}
 		}
 	}
 
@@ -375,6 +395,9 @@ LazyListEmpty : LazyList {
 	*flatten { }
 
 	*transpose { }
+
+	*last{ Error("LazyListEmpty - can't call 'last' on empty list").throw }
+	*at{ Error("LazyList#at : n too big").throw }
 
 }
 
