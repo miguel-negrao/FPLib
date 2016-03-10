@@ -60,11 +60,11 @@ NNdef : Ndef {
 					//"% size doesn't match".format(o.class.asString).postln;
 					T(false,false)
 				}{
-					var storedFunc = rep.at2.collect(_.at2).join;
+					var storedFunc = rep.at2.collect(_.at2).monjoin;
 					var check = { |a,b| a.copy.removeEvery(" \n\t") == b.copy.removeEvery(" \n\t") }.lift
 					.(
-						o.pureFunc.collect{ |x| x.def.sourceCode.asOption }.join,
-						storedFunc.collect{ |x| x.def.sourceCode.asOption }.join
+						o.pureFunc.collect{ |x| x.def.sourceCode.asOption }.monjoin,
+						storedFunc.collect{ |x| x.def.sourceCode.asOption }.monjoin
 					).getOrElse(true);
 					if( check.not ) {
 						//"% functions don't match: \n% - %".format(o.class.asString,

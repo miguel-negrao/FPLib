@@ -59,7 +59,7 @@
 
     pure { |class| ^class.makePure(this) }
     *pure { |class| ^class.makePure(this) }
-	join { ^this >>= I.d }
+	monjoin { ^this >>= I.d }
 
 //Monoid
 	|+| { |b| Object.typeClassError("Monoid").throw }
