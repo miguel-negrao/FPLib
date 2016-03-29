@@ -153,6 +153,12 @@ EventSource : EventStream {
 		^MergedES( this, otherES )
 	}
 
+
+	//Functor
+    collect { |f|
+		^CollectedES(this,f)
+	}
+
     takeWhile { |f|
         ^TakeWhileES( this, f)
     }
@@ -360,11 +366,6 @@ EventSource : EventStream {
     curvelin { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
         ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
     }
-
-//Functor
-    collect { |f|
-		^CollectedES(this,f)
-	}
 
 }
 
