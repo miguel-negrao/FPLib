@@ -205,11 +205,19 @@ NNdef : Ndef {
 + FPSignal {
 
 	enKr { |lag = 0.1, key, spec, debug = false|
+		^this.prEnGeneric(\kr, lag, key, spec, debug)
+	}
+
+	enAr { |key, spec, debug = false|
+		^this.prEnGeneric(\ar, nil, key, spec, debug)
+	}
+
+	prEnGeneric { |rate, lag = 0.1, key, spec, debug = false|
 
 		var controlName = key ?? { NNdef.nextControl() };
 		var thisUdef = NNdef.buildCurrentNNdefKey;
 		NNdef.buildControls = NNdef.buildControls.addI(controlName);
-		if(spec.notNil){
+		^if(spec.notNil){
 			spec = spec.asSpec;
 			NNdef(thisUdef).addSpec(controlName, spec);
 			this.collect{ |v| IO{ NNdef(thisUdef).setUni(controlName, v) } }.enOut2;
@@ -218,7 +226,8 @@ NNdef : Ndef {
 			NNdef.setsToPerform = NNdef.setsToPerform.addI(T(true, controlName, this));
 			if(debug) {
 				this.collect( spec.map(_) ).enDebug(controlName.asString)
-			}
+			};
+			controlName.perform(rate, spec.map(this.now), lag)
 		}{
 			this.collect{ |v| IO{ NNdef(thisUdef).set(controlName, v) } }.enOut2;
 			//delay this
@@ -226,9 +235,10 @@ NNdef : Ndef {
 			NNdef.setsToPerform = NNdef.setsToPerform.addI(T(false, controlName, this));
 			if(debug) {
 				this.enDebug(controlName.asString)
-			}
+			};
+			controlName.perform(rate, this.now, lag)
 		};
-		^controlName.kr(this.now, lag)
+
 	}
 
 }
