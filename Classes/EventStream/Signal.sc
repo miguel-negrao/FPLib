@@ -498,7 +498,7 @@ ApplyFPSignal : FPSignal {
 		f.changes.addListener( flistener );
 		x.changes.addListener( xlistener );
 		nodes = [f,x];
-		pureFunc = Some(farg);
+		pureFunc = None();
 	}
 
     remove {
