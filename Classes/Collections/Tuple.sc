@@ -81,7 +81,8 @@ T{
         var class = switch(args.size)
         {2}{Tuple2}
         {3}{Tuple3}
-        {4}{Tuple4};
+        {4}{Tuple4}
+		{5}{Tuple5};
         ^class.new(*args)
     }
 }
@@ -199,7 +200,7 @@ Tuple4{
 	}
 
 	== { |tuple|
-        ^if(tuple.isKindOf(Tuple2) ) {
+        ^if(tuple.isKindOf(Tuple4) ) {
             (this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3) && (this.at4 == tuple.at4)
         } {
             false
@@ -220,9 +221,47 @@ Tuple4{
 	}
 
 //Monoid
-    |+| { |b| ^Tuple3( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3, this.at4 |+| b.at4 ) }
+    |+| { |b| ^Tuple4( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3, this.at4 |+| b.at4 ) }
     *zero { |class1, class2, class3, class4| ^Tuple4( class1.zero, class2.zero, class3.zero, class4.zero) }
 }
+
+
+Tuple5{
+	var <at1, <at2, <at3, <at4, <at5;
+
+	*new { |at1, at2, at3, a4, a5|
+		^super.newCopyArgs(at1, at2, at3, a4, a5)
+	}
+
+	== { |tuple|
+        ^if(tuple.isKindOf(Tuple5) ) {
+            (this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3)
+			 && (this.at4 == tuple.at4)  && (this.at5 == tuple.at5)
+        } {
+            false
+        }
+	}
+
+	printOn { arg stream;
+		stream << "(" << at1 << ", " << at2 << ", " << at3 << ", " << at4 << ", " << at5 <<")"
+	}
+
+	storeArgs {
+		^[at1, at2, at3, at4, at5]
+	}
+
+//Functor
+	collect { |f|
+		^Tuple4( f.(at1), f.(at2), f.(at3), f.(at4), f.(at5) )
+	}
+
+//Monoid
+    |+| { |b| ^Tuple5( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3,
+		this.at4 |+| b.at4, this.at5 |+| b.at5 ) }
+    *zero { |class1, class2, class3, class4, class5| ^Tuple5( class1.zero, class2.zero,
+		class3.zero, class4.zero, class5.zero) }
+}
+
 
 + SimpleNumber {
 
