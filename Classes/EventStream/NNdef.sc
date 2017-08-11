@@ -9,7 +9,8 @@ NNdef : Ndef {
 
 	var <eventNetworks;
 	var <frpControls;
-	var <>frpSetEventSources; //remove < afterwards
+	var <>frpControlsDict; //IdentityDictionary key to Dictionary with EventSource and default values
+	//remove <> afterwards
 
 	*nextControl {
 		var current = NNdef.buildFRPControlNum;
@@ -31,7 +32,7 @@ NNdef : Ndef {
 
 		if( frpControls.isNil ) { frpControls = Order.new };
 		previousFRPControls = frpControls.at(index);
-		frpSetEventSources = IdentityDictionary.new;
+		frpControlsDict = IdentityDictionary.new;
 
 		// START OF ORIGINAL NodeProxy#put code
 		if(obj.isNil) { this.removeAt(index); ^this };
@@ -112,12 +113,24 @@ NNdef : Ndef {
 	}
 
 	set { | ... args |
+		"% setting %".format(this.key, args).postln;
 		args.pairsDo{ |key,val|
-			frpSetEventSources !? {
-				frpSetEventSources[key] !? { |es| es.fire(val) };
+			frpControlsDict !? {
+				frpControlsDict[key] !? { |d| d.es.fire(val) };
 			}
 		};
 		super.set(*args);
+	}
+
+	unset { |... keys|
+		"% unsetting %".format(this.key, keys).postln;
+		keys.do{ |key|
+			frpControlsDict !? {
+				frpControlsDict[key] !? { |d|
+					/*"unsetting key % to %".format(key, d.default).postln; */d.es.fire(d.default) };
+			}
+		};
+		super.unset(*keys);
 	}
 
 	setJustNodeMap { | ... args |
@@ -253,7 +266,7 @@ NNdef : Ndef {
 		var es = EventSource();
 		var actualInit = nodeMapValue ?? initialValue;
 		var inject = (es.collect{ |x| {x} } | this).injectF(actualInit);
-		thisNNdef.frpSetEventSources.put(key, es);
+		thisNNdef.frpControlsDict.put(key, (default:initialValue, es:es) );
 		inject.collect({ |val| IO{ thisNNdef.setJustNodeMap(key, val) }}).enOut;
 		^inject
 	}
