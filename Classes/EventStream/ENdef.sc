@@ -1,57 +1,11 @@
-VarProxy {
-
-	classvar dict;
-
-	*initClass {
-		dict = IdentityDictionary.new;
-	}
-
-	*asENInput{ |key, value|
-		var v = Var(value);
-		if(dict.at(key).notNil){
-			"overwritting current Var at %".format(key).warn
-		};
-		dict.put(key,v);
-		^Writer( v, Tuple3([],[],[]) )
-	}
-
-	*enIn { |key, value|
-		^ENDef.appendToResult( this.asENInput(key, value) )
-	}
-
-	*new{ |key,value|
-		if( dict.at(key).notNil ) {
-			dict.at(key).value_(value)
-		} {
-			"VarProxy: no Var at %.".format(key).postln;
-		}
-	}
-
-}
-
-
 /*
+To do:
 
-(
+add \name1.enIn
 
-//network
-~networkDescription = ENDef({
-    //inputs
-    var x = VarProxy.enIn(\x, 5);
-    x.enDebug(\x)
+then
 
-});
-//compile network
-~network = EventNetwork(~networkDescription, true);
-
-//start network
-~network.start;
-
-)
-
-VarProxy(\x, 24)
-VarProxy(\y, 24)
-
+ENdef(\test).set(\name1, 50)
 */
 
 ENdef  {
@@ -102,7 +56,7 @@ ENdef  {
 		};
 		if( f.notNil ) {
 			//if event network already exists, and graph is compatible, re-use old state.
-			eventNetwork = if(eventNetwork.notNil){eventNetwork.change(ENDef(f), runSignalReactimatesOnce:false)}{EventNetwork(ENDef(f))};
+			eventNetwork = if(eventNetwork.notNil){eventNetwork.change(ENImperEval(f), runSignalReactimatesOnce:false)}{EventNetwork(ENImperEval(f))};
 			if(active) { eventNetwork.start }
 		} {
 			eventNetwork = nil
