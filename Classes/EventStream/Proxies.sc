@@ -65,18 +65,18 @@ ENdef  {
 	*new { | key, f | //object is a function
 		var check = this.checkArgs(\ENdef, \new, [key, f], [Symbol, [Function,Nil]]);
 
-		var en = all.at(key);
-		en = en ?? {
+		var endef = all.at(key);
+		endef = endef ?? {
 			var x = this.basicNew( key, nil);
 			all.put(key, x);
 			x
 		};
-		f !? { en.setSource(f) };
-		^en
+		f !? { endef.setSource(f) };
+		^endef
 	}
 
-	*basicNew{ |key, en|
-		^super.newCopyArgs(key, en)
+	*basicNew{ |key, endef|
+		^super.newCopyArgs(key, endef)
 	}
 
 	start{
@@ -95,14 +95,14 @@ ENdef  {
 	}
 
 	setSource { |f|
-		var d = "setSource %".format(f).postln;
 		var active = false;
 		if(eventNetwork.notNil and: {eventNetwork.active}) {
 			eventNetwork.stop;
 			active = true;
 		};
 		if( f.notNil ) {
-			eventNetwork = EventNetwork(ENDef(f));
+			//if event network already exists, and graph is compatible, re-use old state.
+			eventNetwork = if(eventNetwork.notNil){eventNetwork.change(ENDef(f), runSignalReactimatesOnce:false)}{EventNetwork(ENDef(f))};
 			if(active) { eventNetwork.start }
 		} {
 			eventNetwork = nil

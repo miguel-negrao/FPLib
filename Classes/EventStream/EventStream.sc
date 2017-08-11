@@ -31,7 +31,7 @@ EventStream{
 	classvar <doFuncs;
 	classvar <>debugInternal = false;
 	classvar <>buildFlatCollect;
-	var <nodes;
+	var <>nodes;
 	var <pureFunc;
 
 	/*
@@ -383,7 +383,7 @@ NothingES : EventSource {
 }
 
 HoldFPSignal : FPSignal {
-	var <now;
+	var <>now;
 	var <changes;
 	var <listener;
 

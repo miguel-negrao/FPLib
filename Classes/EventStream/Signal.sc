@@ -52,35 +52,61 @@ FPSignal {
 
 	changes { } //returns EventStream
 
-	do { |f|
-		this.checkArgs(FPSignal, "do", [f], [Function] );
-		f.(this.now);
-		^this.changes.do(f);
-	}
+//COMBINATORS:
+	//missing this combinator:
+	//switchB :: forall t a. Behavior t a -> Event t (AnyMoment Behavior a) -> Behavior t a
 
-	doDef { |name, f|
-		this.checkArgs(FPSignal, "doDef", [f], [Function] );
-		f.(this.now);
-		^this.changes.doDef(name, f)
-	}
+//Functor
+	collect { |f|
+		this.checkArgs(FPSignal, "collect", [f], [Function] );
+        ^CollectedFPSignal(this,f)
+    }
 
-	stopDoing { |f|
-		this.checkArgs(FPSignal, "stopDoing", [f], [Function] );
-		^this.changes.stopDoing(f);
-	}
+//Aplicative Functor
+    //apply signals to signals
+    <*> { |fasignal|
+		this.checkArgs(FPSignal, "<*>", [fasignal], [FPSignal] );
+		^ApplyFPSignal(this, fasignal )
+    }
 
-	connect { |object|
-		this.do{ |v| defer{ object.value_(v) } };
-       ^Unit
-	}
+    //apply time-varying function to EventSources
+    <@> { |es|
+		var es2;
+		this.checkArgs(FPSignal, "<@>", [es], [EventStream] );
+         //apply a signal with a function to every incoming event
+        es2 = es.collect{ |x| this.now.value(x) };
+		es2.nodes = [this, es];
+		^es2
+    }
 
-	reset {
-		^this.changes.reset;
-	}
+     <@ { |es|
+		var es2;
+		this.checkArgs(FPSignal, "<@", [es], [EventStream] );
+        //sample signal at every incoming event
+        es2 = es.collect{ |x| this.now };
+		es2.nodes = [this, es];
+		^es2
+    }
 
-	remove {
-		^this.changes.remove;
-	}
+	//alias
+	sampleOn { |es|
+		var es2;
+		this.checkArgs(FPSignal, "sampleOn", [es], [EventStream] );
+        //sample signal at every incoming event
+        es2 = es.collect{ |x| this.now };
+		es2.nodes = [this, es];
+		^es2
+    }
+
+    switchTo { |f, initialSignal|
+		this.checkArgs(FPSignal, "switchTo", [f], [Function] );
+        ^FlatCollectedFPSignal( this, f, initialSignal)
+    }
+
+	selfSwitch { |f|
+		this.checkArgs(FPSignal, "selfSwitch", [f], [Function] );
+        ^SelfSwitchFPSignal( f, this)
+    }
 
     inject { |init, f|
 		this.checkArgs(FPSignal, "inject", [init, f], [Object, Function] );
@@ -103,7 +129,9 @@ FPSignal {
 		.select(_.at1)
 		.collect(_.at2)
 	}
+//END COMBINATORS
 
+//MISC
     //audio
     bus { |server|
 		this.checkArgs(FPSignal, "bus", [server], [Server] );
@@ -118,20 +146,20 @@ FPSignal {
 		}
 	}
 
-    //EventNetwork related
+//EventNetwork related
     connectEN{ |object|
     	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
     }
 
     reactimate{ //this stream should returns IOs
-		^Writer( Unit, Tuple3([],[this.changes],[this.now]) )
+		^Writer( Unit, Tuple3([],[this.changes],[this]) )
 	}
 
 	reactimate2{ //this stream should returns IOs
 		^Writer( Unit, Tuple3([],[this.changes],[]) )
 	}
 
-	asENInput {
+	asENInputSig {
 		^Writer(this, Tuple3([],[],[]) )
 	}
 
@@ -150,11 +178,13 @@ FPSignal {
         ^this.inject( Tuple2(0.0,0.0), { |state,x| Tuple2( state.at2, x ) })
     }
 
+	//not pure, performs IO: Process.elapsedTime
     storePreviousWithT {
         ^this.inject( Tuple2( Tuple2(0.0,0.0), Tuple2(0.0,0.0) ),
             { |state,x| Tuple2( state.at2, Tuple2( Process.elapsedTime, x ) ) })
     }
 
+	//not pure, performs IO: Process.elapsedTime
     storeWithT {
         ^this.collect( Tuple2(Process.elapsedTime,_) )
     }
@@ -163,9 +193,13 @@ FPSignal {
 		^this.storePrevious.collect{ |tup| tup.at1 != tup.at2 }
     }
 
+	withKey { |key|
+		^this.collect{ |v| [key,v] }
+	}
+
     //time related signal methods
 
-    //For these methods this should be signal with the time value
+	//to be used on time signal
     integral { |tsig|
 		var check = this.checkArgs(FPSignal, "integral", [tsig], [FPSignal] );
 		var x = T(_,_) <%> this <@> tsig.changes; //only updates when tsig updates
@@ -188,7 +222,7 @@ FPSignal {
 		^y.collect(_.at1).hold(0.0)
     }
 
-	//should be time signal
+	//to be used on time signal
 	integral1 {
 		^this.inject(nil, {|state, t|
 			if(state.notNil) {
@@ -360,63 +394,50 @@ FPSignal {
         ^(_-_) <%> this <*> signal.asFPSignal
     }
 
-	//missing this combinator:
-	//switchB :: forall t a. Behavior t a -> Event t (AnyMoment Behavior a) -> Behavior t a
+/*
+	low-level interface for adding actions.
+	Should't be used,  ENdef and NNdef are the prefered interfaces.
+*/
+	do { |f|
+		this.checkArgs(FPSignal, "do", [f], [Function] );
+		f.(this.now);
+		^this.changes.do(f);
+	}
 
-//Functor
-	collect { |f|
-		this.checkArgs(FPSignal, "collect", [f], [Function] );
-        ^CollectedFPSignal(this,f)
-    }
+	doDef { |name, f|
+		this.checkArgs(FPSignal, "doDef", [f], [Function] );
+		f.(this.now);
+		^this.changes.doDef(name, f)
+	}
 
-//Aplicative Functor
-    //apply signals to signals
-    <*> { |fasignal|
-		this.checkArgs(FPSignal, "<*>", [fasignal], [FPSignal] );
-		^ApplyFPSignal(this, fasignal )
-    }
+	stopDoing { |f|
+		this.checkArgs(FPSignal, "stopDoing", [f], [Function] );
+		^this.changes.stopDoing(f);
+	}
 
-    //apply time-varying function to EventSources
-    <@> { |es|
-		this.checkArgs(FPSignal, "<@>", [es], [EventStream] );
-         //apply a signal with a function to every incoming event
-        ^es.collect{ |x| this.now.value(x) }
-    }
+	connect { |object|
+		this.do{ |v| defer{ object.value_(v) } };
+	}
 
-     <@ { |es|
-		this.checkArgs(FPSignal, "<@", [es], [EventStream] );
-        //sample signal at every incoming event
-        ^es.collect{ |x| this.now }
-    }
+	reset {
+		^this.changes.reset;
+	}
 
-	//alias
-	sampleOn { |es|
-		this.checkArgs(FPSignal, "sampleOn", [es], [EventStream] );
-        //sample signal at every incoming event
-        ^es.collect{ |x| this.now }
-    }
+	remove {
+		^this.changes.remove;
+	}
 
-
-    switchTo { |f, initialSignal|
-		this.checkArgs(FPSignal, "switchTo", [f], [Function] );
-        ^FlatCollectedFPSignal( this, f, initialSignal)
-    }
-
-	selfSwitch { |f|
-		this.checkArgs(FPSignal, "selfSwitch", [f], [Function] );
-        ^SelfSwitchFPSignal( f, this)
-    }
+/*
+	End of low-level interface.
+*/
 
 }
 
 SignalChangeES : EventSource {
-	var ref; //what is this ref used for ? looks like a memory managment thing.
-
 	//this should not be logged into EventStream.buildFlatCollect
-	*new { |handler, parent| ^super.newNoLog.initSignalChange(handler, parent) }
+	*new { |parent| ^super.newNoLog.initSignalChange(parent) }
 
-    initSignalChange { |handler,parent|
-    	ref = handler;
+    initSignalChange { |parent|
 		nodes = [parent]
     }
 }
@@ -425,7 +446,7 @@ ChildFPSignal : FPSignal {
     var <>state;
     var <parent;
     var <listenerFunc;
-    var <handler; //: (T, S) => S
+    var <handler;//: a -> b -> b
     var <changes;
     var <>now;
 
@@ -436,7 +457,7 @@ ChildFPSignal : FPSignal {
     initChildFPSignal { |p,h, initialState, initialFunc, pureFuncArg|
     	state = initialState;
     	now = initialFunc.( initialState );
-        changes = SignalChangeES(nil, this);
+        changes = SignalChangeES(this);
         parent = p;
         handler = h;
         listenerFunc = { |value|
@@ -450,11 +471,9 @@ ChildFPSignal : FPSignal {
 
     remove {
 		parent.changes.removeListener( listenerFunc );
-		^Unit
     }
 
 }
-
 
 CollectedFPSignal : ChildFPSignal {
 
@@ -472,14 +491,14 @@ CollectedFPSignal : ChildFPSignal {
 }
 
 ApplyFPSignal : FPSignal {
-	var <f, <x, <fval, <xval, <flistener, <xlistener, <now, <changes;
+	var <f, <x, <fval, <xval, <flistener, <xlistener, <>now, <changes;
 
 	*new { |f, x|
         ^super.new.initApplySignalFPSignal(f, x)
     }
 
     initApplySignalFPSignal { |farg, xarg|
-		changes = SignalChangeES(nil, this);
+		changes = SignalChangeES(this);
 		f = farg;
 		x = xarg;
 		fval = f.now;
@@ -504,7 +523,6 @@ ApplyFPSignal : FPSignal {
     remove {
 		f.changes.removeListener( flistener );
 		x.changes.removeListener( xlistener );
-		^Unit
 	}
 
 }
@@ -586,7 +604,7 @@ SelfSwitchFPSignal : ChildFPSignal {
 
 		now = initSignal.now.at1;
 
-		changes = SignalChangeES(nil, this);
+		changes = SignalChangeES(this);
 
 		parent = initSignal;
 
@@ -655,7 +673,6 @@ SelfSwitchFPSignal : ChildFPSignal {
 	}
 }
 
-
 //the thing causing the switching is an event source instead of signal
 //initial signal must be provided !
 FlatCollectedFPSignalHybrid : ChildFPSignal {
@@ -709,7 +726,7 @@ FlatCollectedFPSignalHybrid : ChildFPSignal {
 	initChildFPSignal { |p,h, initialState, initialFunc|
     	state = initialState;
     	now = initialFunc.( initialState );
-        changes = SignalChangeES(nil, this);
+        changes = SignalChangeES(this);
         parent = p;
         handler = h;
         listenerFunc = { |value|
@@ -721,7 +738,6 @@ FlatCollectedFPSignalHybrid : ChildFPSignal {
 
     remove {
 		parent.removeListener( listenerFunc );
-		^Unit
     }
 }
 
@@ -766,7 +782,7 @@ TakeWhileFPSignal : ChildFPSignal {
 
 //A signal that never changes, and therefore never fires anything;
 Val : FPSignal {
-	var <now;
+	var <>now;
 	var <changes;
 
 	*new { |now| ^super.new.initVal(now) }
@@ -784,27 +800,7 @@ Var : Val {
     value_ { |v|
     	now = v;
     	changes.fire(v);
-    	^Unit
     }
-
-	//GUI additions
-
-	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
-		var spec = [minval, maxval, warp, step, default].asSpec;
-		var slider = Slider(nil, Rect(100,100,50,100) );
-		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
-		slider.value_(spec.unmap(this.value));
-		slider.front;
-		^slider
-	}
-
-	getSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
-		var spec = [minval, maxval, warp, step, default].asSpec;
-		var slider = Slider(nil, Rect(100,100,50,100) );
-		slider.action_{ |sl| this.value_(spec.map(sl.value)) };
-		slider.value_(spec.unmap(this.value));
-		^slider
-	}
 
 }
 

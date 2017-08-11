@@ -20,69 +20,32 @@
     one wants to make an instance of some type class.
 */
 
-FRPGUIProxy {
-	//Option[QView]
-	var <view, default;
-	//Option[Function]
-	var <f;
++ Object {
 
-	*new { |view, default = 0.0|
-		^super.newCopyArgs(view.asOption, default)
-	}
+	sinkValue { |signal|
+    	^signal.collect{ |v| IO{ defer{ this.value_(v) } } }.reactimate;
+    }
 
-	addAction { |g|
-		f = Some(g);
-		view.collect{ |x| x.action_( x.action.addFunc(g) ) }
-	}
+	//signal should carry array of form ['methodName', arg1, arg2, ...]
+	sink { |signal, method|
+    	^signal.collect{ |v| IO{ defer{ this.perform(*v) } } }.reactimate;
+    }
 
-	removeAction { |g|
-		f = Some(g);
-		view.collect{ |x| x.action_( x.action.removeFunc(g) ) }
-	}
+	*sink { |signal, method|
+    	^signal.collect{ |v| IO{ defer{ this.perform(*v) } } }.reactimate;
+    }
 
-	asENInput {
-		^FRPGUICode.makeENInput(this)
-	}
-
-	view_ { |newView|
-		if(newView.isNil){ Error("FRPGUIProxy#view_ : newView is nil").throw };
-		{ |view, g| view.action_( view.action.removeFunc(g) ) } <%> view <*> f;
-		{ |g| newView.action_( newView.action.addFunc(g) ) } <%> f;
-		view = Some(newView)
-	}
-
-	removeView {
-		{ |view, g| view.action_( view.action.removeFunc(g) ) } <%> view <*> f;
-		view = None();
-	}
-
-	value {
-		^(_.value <%> view).getOrElse(default)
-	}
-
-}
-
-FRPGUICode {
-
-	*makeENInput { |gui|
-		var addHandler;
-		var es = Var(gui.value);
-		var action = { |sl| es.value_( sl.value ) };
-		addHandler = IO{
-			gui.addAction(action);
-			IO{ gui.removeAction(action)
-		} };
-		^Writer( es, Tuple3([addHandler],[],[IO{ action.value(gui) }]) )
-	}
-
-	*makeENInputES { |gui|
-		var addHandler;
+/*
+using dependency system
+this ES fires whenever the object is updated via 'changed'
+*/
+	updatesEN {
 		var es = EventSource();
-		var action = { |sl| es.fire( sl.value ) };
-		addHandler = IO{
-			gui.addAction(action);
-			IO{ gui.removeAction(action)
-		} };
+		var addHandler= IO{
+			var action = { |a,b,c| es.fire( T(a,b,c) ) };
+			this.addDependant(action);
+			IO{ this.removeDependant.(action) }
+		};
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
@@ -90,18 +53,15 @@ FRPGUICode {
 
 + Node {
 
-	setSink { |key, signal|
-		^signal.collect{ |v| this.setIO(key,v) }.reactimate
+	setSink { |key, o|
+		^o.collect{ |v| this.setIO(key,v) }.reactimate
 	}
 
-	enSetSink { |key, signal|
-		ENDef.appendToResult( this.setSink(key, signal) );
-	}
 }
 
 + OSCFunc {
 
-	*asENInputES { |path, srcID, recvPort, argTemplate, dispatcher|
+	*asENInput { |path, srcID, recvPort, argTemplate, dispatcher|
         var es = EventSource();
         var addHandler = IO{
             var f = { |msg| es.fire(msg) };
@@ -111,7 +71,7 @@ FRPGUICode {
         ^Writer( es, Tuple3([addHandler],[],[]) )
     }
 
-	*asENInput { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
+	*asENInputSig { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
 		var es = Var(initialValue);
         var addHandler = IO{
             var f = { |msg| es.value_(msg) };
@@ -121,15 +81,7 @@ FRPGUICode {
         ^Writer( es, Tuple3([addHandler],[],[]) )
     }
 
-	*enIn { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
-		^ENDef.appendToResult( this.asENInput(path, srcID, recvPort, argTemplate, dispatcher, initialValue) );
-	}
-
-	*enInES{ |path, srcID, recvPort, argTemplate, dispatcher|
-		^ENDef.appendToResult( this.asENInputES(path, srcID, recvPort, argTemplate, dispatcher) );
-	}
-
-	*asENInputESFull { |path, srcID, recvPort, argTemplate, dispatcher|
+	*asENInputFull { |path, srcID, recvPort, argTemplate, dispatcher|
         var es = EventSource();
         var addHandler = IO{
             var f = { |...args| es.fire(args) };
@@ -139,7 +91,7 @@ FRPGUICode {
         ^Writer( es, Tuple3([addHandler],[],[]) )
     }
 
-	*asENInputFull { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
+	*asENInputFullSig { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
 		var es = Var(initialValue);
         var addHandler = IO{
             var f = { |...args| es.value_(args) };
@@ -149,57 +101,20 @@ FRPGUICode {
         ^Writer( es, Tuple3([addHandler],[],[]) )
     }
 
-	*enInFull { |path, srcID, recvPort, argTemplate, dispatcher, initialValue|
-		^ENDef.appendToResult( this.asENInputFull(path, srcID, recvPort, argTemplate, dispatcher, initialValue) );
-	}
-
-	*enInESFull{ |path, srcID, recvPort, argTemplate, dispatcher|
-		^ENDef.appendToResult( this.asENInputESFull(path, srcID, recvPort, argTemplate, dispatcher) );
-	}
 }
-
-+ QView {
-
-	asENInput {
-		^FRPGUICode.makeENInput(this)
-	}
-
-	asENInputES {
-		^FRPGUICode.makeENInputES(this)
-	}
-}
-
-+ View {
-
-	asENInput {
-		^FRPGUICode.makeENInput(this)
-	}
-
-	asENInputES {
-		^FRPGUICode.makeENInputES(this)
-	}
-}
-
-/*+ SCView {
-
-	asENInput {
-		^FRPGUICode.makeENInput(this)
-	}
-
-}*/
 
 + MKtlElement {
 
 	asENInput {
-        var es = Var(this.value);
-		var func = { |v| es.value_(v.value) };
+		var es = EventSource();
+		var func = { |v| es.fire(v.value) };
 		var addHandler = IO{ this.addAction(func); IO{ this.removeAction(func) } };
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	asENInputES {
-		var es = EventSource();
-		var func = { |v| es.fire(v.value) };
+	asENInputSig {
+        var es = Var(this.value);
+		var func = { |v| es.value_(v.value) };
 		var addHandler = IO{ this.addAction(func); IO{ this.removeAction(func) } };
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}

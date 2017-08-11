@@ -21,8 +21,33 @@
 */
 
 + View {
+/*
+Adds and removes the call-back action directly in the View object.
+This is different from the more general fromAddHandler method.
+*/
+	asENInput {
+		var addHandler;
+		var es = EventSource();
+		var action = { |o| es.fire( o.value ) };
+		addHandler = IO{
+			this.addAction(action);
+			IO{ this.removeAction(action)
+		} };
+		^Writer( es, Tuple3([addHandler],[],[]) )
+	}
 
-	mouseClicksENInputES {
+	asENInputSig {
+		var addHandler;
+		var es = Var(this.value);
+		var action = { |o| es.value_( o.value ) };
+		addHandler = IO{
+			this.addAction(action);
+			IO{ this.removeAction(action)
+		} };
+		^Writer( es, Tuple3([addHandler],[],[]) )
+	}
+
+	mouseClicksEN {
 		var es = EventSource();
 		var f = {
 			es.fire( Unit );
@@ -34,11 +59,11 @@
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	mouseClicksEnInES {
-		^ENDef.appendToResult( this.mouseClicksENInputES );
+	enMouseClicks {
+		^ENImperEval.appendToResult( this.mouseClicksEN );
 	}
 
-	mousePosENInput {
+	mousePosEN {
 		var sig = Var(Point(0,0));
 		var f = { |view, x, y, modifiers|
 			sig.value_( Point(x, y) );
@@ -50,11 +75,11 @@
 		^Writer( sig, Tuple3([addHandler],[],[]) )
 	}
 
-	mousePosEnIn {
-		^ENDef.appendToResult( this.mousePosENInput );
+	enMousePos {
+		^ENImperEval.appendToResult( this.mousePosEN );
 	}
 
-	mouseIsDownENInput {
+	mouseIsDownEN {
 		var sig = Var( false);
 		var fdown = { |view, x, y, modifiers|
 			sig.value_( true );
@@ -73,14 +98,14 @@
 		^Writer( sig, Tuple3([addHandler],[],[]) )
 	}
 
-	mouseIsDownEnIn {
-		^ENDef.appendToResult( this.mouseIsDownENInput );
+	enMouseIsDown {
+		^ENImperEval.appendToResult( this.mouseIsDownEN );
 	}
 
-	keyDownENInputES {
+	keyDownEN {
 		var es = EventSource();
-		var f = { |v, char|
-			es.fire( char );
+		var f = { |v, char, mod, uni, keycode, key|
+			es.fire( T(char, mod, uni, keycode, key) );
 		};
 		var addHandler = IO{
 			this.keyDownAction = this.keyDownAction.addFunc(f);
@@ -89,35 +114,24 @@
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	keyDownEnInES {
-		^ENDef.appendToResult( this.keyDownENInputES );
+	enKeyUp {
+		^ENImperEval.appendToResult( this.keyDownEN );
 	}
 
-	keysDownENInput {
-		var sig = Var( []);
-		var fdown = { |view, char|
-			sig.value_( sig.value.add(char) );
-		};
-		var fup = { |view, char|
-			var x = sig.value;
-			x.remove(char);
-			sig.value_( x );
+	keyUpEN {
+		var es = EventSource();
+		var f = { |v, char, mod, uni, keycode, key|
+			es.fire( T(char, mod, uni, keycode, key) );
 		};
 		var addHandler = IO{
-			this.keyDownAction = this.keyDownAction.addFunc(fdown);
-			this.keyUpAction = this.keyUpAction.addFunc(fup);
-			IO{
-				this.keyDownAction.removeFunc(fdown);
-				this.keyUpAction.removeFunc(fup)
-			}
+			this.keyUpAction = this.keyUpAction.addFunc(f);
+			IO{ this.keyUpAction.removeFunc(f) }
 		};
-		^Writer( sig, Tuple3([addHandler],[],[]) )
+		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	keysDownEnIn {
-		^ENDef.appendToResult( this.keysDownENInput );
+	enKeyUp {
+		^ENImperEval.appendToResult( this.keyUpEN );
 	}
-
-	//TODO, shiftDown, ctrlDown, etc
 
 }
