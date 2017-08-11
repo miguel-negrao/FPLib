@@ -9,6 +9,7 @@ NNdef : Ndef {
 
 	var <eventNetworks;
 	var <frpControls;
+	var <>frpSetEventSources; //remove < afterwards
 
 	*nextControl {
 		var current = NNdef.buildFRPControlNum;
@@ -24,12 +25,13 @@ NNdef : Ndef {
 		NNdef.buildCurrentNNdefKey = key;
 		NNdef.buildControls = [];
 		NNdef.setsToPerform = [];
-		ENDef.tempBuilder = T([],[],[]);
+		ENImperEval.tempBuilder = T([],[],[]);
 		index = index ?? 0;
 		if( eventNetworks.isNil ) { eventNetworks = Order.new };
 
 		if( frpControls.isNil ) { frpControls = Order.new };
 		previousFRPControls = frpControls.at(index);
+		frpSetEventSources = IdentityDictionary.new;
 
 		// START OF ORIGINAL NodeProxy#put code
 		if(obj.isNil) { this.removeAt(index); ^this };
@@ -53,7 +55,7 @@ NNdef : Ndef {
 
 		// Do FRP stuff here
 		if( obj.isFunction || (obj.isKindOf(Association)) ) {
-			var enDesc = Writer(Unit, ENDef.tempBuilder);
+			var enDesc = Writer(Unit, ENImperEval.tempBuilder);
 			var currentEN = eventNetworks.at(index);
 			//for FPSignal#enKr Ndef is set with "now" value
 			//NNdef.setsToPerform contains the actual FPSignals, and now value is only extracted after event network
@@ -107,6 +109,19 @@ NNdef : Ndef {
 		super.clear(fadeTime);
 		eventNetworks.do( _.stop );
 		eventNetworks = Order.new;
+	}
+
+	set { | ... args |
+		args.pairsDo{ |key,val|
+			frpSetEventSources !? {
+				frpSetEventSources[key] !? { |es| es.fire(val) };
+			}
+		};
+		super.set(*args);
+	}
+
+	setJustNodeMap { | ... args |
+		super.set(*args);
 	}
 }
 
@@ -230,6 +245,17 @@ NNdef : Ndef {
 			this.enDebug(controlName.asString)
 		}
 		^controlName.tr(initialValue)
+	}
+
+	injectFStoreState { |initialValue, key|
+		var thisNNdef = NNdef(NNdef.buildCurrentNNdefKey);
+		var nodeMapValue = thisNNdef.get(key);
+		var es = EventSource();
+		var actualInit = nodeMapValue ?? initialValue;
+		var inject = (es.collect{ |x| {x} } | this).injectF(actualInit);
+		thisNNdef.frpSetEventSources.put(key, es);
+		inject.collect({ |val| IO{ thisNNdef.setJustNodeMap(key, val) }}).enOut;
+		^inject
 	}
 
 }
