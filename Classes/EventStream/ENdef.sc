@@ -43,9 +43,9 @@ ENdef  {
 
 	clear{
 		if(eventNetwork.notNil and: {eventNetwork.active}) {
-			eventNetwork.stop;
-			eventNetwork = nil;
-		}
+			eventNetwork.stop
+		};
+		eventNetwork = nil;
 	}
 
 	setSource { |f|
