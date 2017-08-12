@@ -93,6 +93,7 @@ EventSource : EventStream {
 		pureFunc = None();
     }
 
+	//internal connection between nodes of the FRP network.
     addListener { |f|
         //" addListener % % %".format(this, this.hash, f.def.sourceCode).postln;
         listeners = listeners ++ [f];
@@ -103,7 +104,9 @@ EventSource : EventStream {
 
     reset { listeners = []; ^Unit }
 
-	//private
+	remove { ^Unit }
+
+	//Combinators
     select { |f|
         ^SelectedES(this, f)
     }
@@ -163,7 +166,13 @@ EventSource : EventStream {
         ^TakeWhileES( this, f)
     }
 
-    do { |f|
+	//returns the corresponding signal
+    hold { |initialValue|
+    	^HoldFPSignal(this, initialValue)
+    }
+
+	//Low-level call-back interface
+	do { |f|
         this.addListener(f);
         ^Unit
     }
@@ -197,73 +206,22 @@ EventSource : EventStream {
             " % ,  % ".format(f.def.sourceCode, f).postln;
         };*/
 
-	    //copy is used here because listerFuncs might mutate the listeners variable
-	    //change this to a FingerTree in the future.
+	    //copy is used here because listenerFuncs might mutate the listeners variable
         listeners.copy.do( _.value(event) );
         if(EventStream.debugInternal) { postln("-> "++this++" : "++this.hash++" : "++event)};
         ^Unit
     }
 
-	debug { |string|
-        ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
-    }
-
-    fireIO { |event|
-		^IO{ this.fire(event) }
-    }
-
-
-	//returns the corresponding signal
-    hold { |initialValue|
-    	^HoldFPSignal(this, initialValue)
-    }
-
-    remove { ^Unit }
-
-    //connect to an object that responds to .value_
-    connect{ |object|
-    	this.do{ |v| defer{ object.value_(v) } };
-    	^Unit
-    }
-
-    connectIO{ |object|
-    	^this.collect{ |v| IO{ defer{ object.value_(v) } } };
-    }
-
-    connectEN{ |object|
-    	^this.collect{ |v| IO{ defer{ object.value_(v) } } }.reactimate;
-    }
-
+	//EventNetwork related
     reactimate{ //this stream should returns IOs
 		^Writer( Unit, Tuple3([],[this],[]) )
 	}
 
-	asENInput {
-		^Writer(this, Tuple3([],[],[]) )
-	}
+	debug { |string|
+        ^this.collect{ |x| putStrLn(string++" : "++x) }.reactimate;
+    }
 
-	//GUI additions
-
-	makeSlider{ |minval=0.0, maxval=1.0, warp='lin', step=0.0, default|
-		var spec = [minval, maxval, warp, step, default].asSpec;
-		var slider = Slider(nil, Rect(100,100,50,100) );
-		slider.action_{ |sl| this.fire(spec.map(sl.value)) }
-	}
-
-    bus { |server, initVal = 0.0|
-		server = server ?? {Server.default};
-		if( server.serverRunning ) {
-			var bus = Bus.control(server, initVal.asArray.size);
-			var f = { |x| bus.setn( x.asArray ) };
-			this.do(f);
-			bus.setn( initVal.asArray );
-			^Some( Tuple2( bus, f) )
-		} {
-			^None()
-		}
-	}
-
-    //utilities
+    //Utilities
 	mapWith { |spec|
 		^this.collect{ |v| spec.map( v ) }
 	}
@@ -284,7 +242,6 @@ EventSource : EventStream {
     storeWithT {
         ^this.collect( Tuple2(Process.elapsedTime,_) )
     }
-
 
     onlyChanges {
 		^this.storePrevious.select{ |tup| tup.at1 != tup.at2 }.collect(_.at2)
@@ -334,7 +291,6 @@ EventSource : EventStream {
 		^T(pages, pageChangeES )
 	}
 
-
     linlin { |inMin, inMax, outMin, outMax, clip=\minmax|
         ^this.collect( _.linlin(inMin, inMax, outMin, outMax, clip) )
     }
@@ -366,6 +322,7 @@ EventSource : EventStream {
     curvelin { |inMin = 0, inMax = 1, outMin = 0, outMax = 1, curve = -4, clip = \minmax|
         ^this.collect( _.expexp(inMin, inMax, outMin, outMax, curve, clip) )
     }
+    //END - utilities
 
 }
 
