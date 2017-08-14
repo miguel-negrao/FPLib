@@ -161,4 +161,31 @@ TestFRP : UnitTest {
 		this.assert(after == "notok_after", "after calling ENdef#clear state stored in inject and signal nodes should be cleared.")
 	}
 
+	test_NNdefStoreENStore {
+		var tup = EventNetwork.newAddHandler();
+		var registerAction = tup.at1;
+		var fire = tup.at2;
+		var after;
+		NNdef(\a).clear;
+		NNdef(\b).clear;
+		NNdef(\a, {
+			var es = EventNetwork.enFromAddHandler(registerAction);
+			es
+			//.enDebug("Inside NNDef('a')")
+			.store("nothing",'keyA');
+			Silent.ar
+		});
+		NNdef(\b, {
+			var es = NNdef(\a).enIn('keyA');
+			es
+			//.enDebug("Inside NNDef('b')")
+			.collect{|x| IO{ after = x}}
+			.enOut;
+			Silent.ar
+		});
+		fire.("test 1");
+		this.assert((after == "test 1") && (NNdef(\a).get('keyA') == "test 1"),
+			"When an NNdef which has an input node which is connected to an ouput node of another NNdef, firing an event in the first NNdef should also fire the event in the second NNdef and the value should be stored in the first NNdef")
+	}
+
 }

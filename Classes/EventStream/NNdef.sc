@@ -55,7 +55,7 @@ NNdef : Ndef {
 		// END OF ORIGINAL NodeProxy#put code
 
 		// Do FRP stuff here
-		if( obj.isFunction || (obj.isKindOf(Association)) ) {
+		if( obj.isFunction || (obj.isKindOf(Association)) || obj.isKindOf(FRPDef)) {
 			var enDesc = Writer(Unit, ENImperEval.tempBuilder);
 			var currentEN = eventNetworks.at(index);
 			//for FPSignal#enKr Ndef is set with "now" value
@@ -113,7 +113,7 @@ NNdef : Ndef {
 	}
 
 	set { | ... args |
-		"% setting %".format(this.key, args).postln;
+		//"% setting %".format(this.key, args).postln;
 		args.pairsDo{ |key,val|
 			frpControlsDict !? {
 				frpControlsDict[key] !? { |d| d.es.fire(val) };
@@ -123,11 +123,13 @@ NNdef : Ndef {
 	}
 
 	unset { |... keys|
-		"% unsetting %".format(this.key, keys).postln;
+		//"% unsetting %".format(this.key, keys).postln;
 		keys.do{ |key|
 			frpControlsDict !? {
 				frpControlsDict[key] !? { |d|
-					/*"unsetting key % to %".format(key, d.default).postln; */d.es.fire(d.default) };
+					/*"unsetting key % to %".format(key, d.default).postln; */
+					d.es.fire(d.default)
+				};
 			}
 		};
 		super.unset(*keys);
@@ -136,7 +138,47 @@ NNdef : Ndef {
 	setJustNodeMap { | ... args |
 		super.set(*args);
 	}
+
+	asENInput { |key|
+		^frpControlsDict[key] !? { |dict|
+			var es = EventSource();
+			var func = { |val| es.fire(val) };
+			var listeners = dict['listeners'];
+			var addHandler = IO{ listeners.add(func); IO{ listeners.remove(func) } };
+			 Writer( es, Tuple3([addHandler],[],[]) )
+		} ?? Writer( NothingES(), Tuple3([],[],[]) )
+	}
+
 }
+
+FRPDef {
+	var <func;
+
+	*new {|func|
+		^super.newCopyArgs(func)
+	}
+
+	evaluate {
+		func.value;
+	}
+
+	//compatability with NodeProxy makeProxyControl interface.
+	proxyControlClass {
+		^FRPPlayControl
+	}
+}
+
+FRPPlayControl : AbstractPlayControl {
+
+	build {
+		source.evaluate();
+	}
+
+	play{}
+	stop{}
+
+}
+
 
 + FPSignal {
 
@@ -260,15 +302,53 @@ NNdef : Ndef {
 		^controlName.tr(initialValue)
 	}
 
-	injectFStoreState { |initialValue, key|
+	prMakeStorableES {|initialValue, key, constructNewNode|
 		var thisNNdef = NNdef(NNdef.buildCurrentNNdefKey);
-		var nodeMapValue = thisNNdef.get(key);
 		var es = EventSource();
-		var actualInit = nodeMapValue ?? initialValue;
-		var inject = (es.collect{ |x| {x} } | this).injectF(actualInit);
-		thisNNdef.frpControlsDict.put(key, (default:initialValue, es:es) );
-		inject.collect({ |val| IO{ thisNNdef.setJustNodeMap(key, val) }}).enOut;
-		^inject
+		var actualInit = thisNNdef.get(key) ?? initialValue;
+		var result = constructNewNode.(es, actualInit);
+		var storeListeners = List.new;
+		if(thisNNdef.frpControlsDict[key].notNil) {
+			"Ovewritting event source store with key %".format(key).warn;
+		};
+		thisNNdef.frpControlsDict.put(key, (default:initialValue, es:es, listeners:storeListeners) );
+		result.collect({ |val| IO{
+			thisNNdef.setJustNodeMap(key, val);
+			storeListeners.do{ |f| f.(val) };
+		}}).enOut;
+		^result
+	}
+
+	injectFStore { |initialValue, key|
+		var check = this.checkArgs(\EventSource, \injectFStore,
+			[initialValue, key], [Object, Symbol]);
+		var constructNewNode = { |es, actualInit|
+			 (es.collect{ |x| {x} } | this).injectF(actualInit)
+		};
+		^this.prMakeStorableES(initialValue, key, constructNewNode);
+	}
+
+	//more efficient than .hold(v).store, one less call-back
+	holdStore { |initialValue, key|
+		var check = this.checkArgs(\EventSource, \holdStore,
+			[initialValue, key], [Object, Symbol]);
+		var constructNewNode = { |es, actualInit|
+			 (es | this).hold(actualInit);
+		};
+		^this.prMakeStorableES(initialValue, key, constructNewNode);
+	}
+
+}
+
++ FPSignal {
+
+	store { |key|
+		var check = this.checkArgs(\FPSignal, \store,
+			[key], [Symbol]);
+		var constructNewNode = { |es, actualInit|
+			(es | this.changes).hold(actualInit)
+		};
+		^this.prMakeStorableES(this.now, key, constructNewNode);
 	}
 
 }
