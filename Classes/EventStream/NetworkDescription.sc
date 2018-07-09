@@ -22,39 +22,122 @@
 
 EventNetwork {
 	classvar <makeFRPGraphAnalysis;
+	classvar <checkFRPSameGraph;
+	classvar <putFRPState;
+
 	var
 	<actuate, //IO[Unit]
 	<pause, //IO[Unit]
 	<finalIOES,
-	<active = false,
-	<frpGraphAnalysis;
+	<active = false;
 
 	*initClass{
+		var f,g,h;
+		//recursion using methods has the potential for not working well...
+
 		/*
 		type returned by makeFRPGraphRep
-		Tupple(
+		T(
+		1: Tupple(
 		  1: class of object,
 		  2: it has state | Some(T(o.state, o.pureFunc))
 		  3: it is signal | Some(o.now),
-		  4: list of next elements
+		  4: list of next elements,
+		),
+		2: list of hashes seen so far
 		)
 		*/
-		//recursion using methods has the potential for not working well...
-		var f = { |o|
-			T(  o.class.asString,
-				if([FoldedES, FoldedFES, FoldedFPSignal].any{ |x| o.class == x }){
-					//"%: Some(T(o.state, o.pureFunc)) = Some(T(%, %)) : %".format(o.class.asString, o.state, o.pureFunc, o).postln;
-					Some(T(o.state, o.pureFunc))
-				}{
-					None()
-				},
-				if( o.isKindOf(ChildFPSignal) || [HoldFPSignal, ApplyFPSignal, Val].includes(o.class) ){Some(o.now)}{None()},
-				o.nodes.collect{ |n|
-					f.(n)
+		f = { |o, previousHashList|
+			var newHashList;
+			var parentsResult;
+			if (previousHashList.isNil) { previousHashList = List.new };
+			newHashList = previousHashList.add(o.hash);
+			/*
+			the hashes of all objects already see is kept as state
+			such that the same object will not be processed twice
+			*/
+			parentsResult = o.nodes.inject( T(List.new, newHashList), { |t, n|
+				var hashList = t.at2;
+				var res, hashList2;
+				if (hashList.includes(n.hash).not) {
+					res = f.(n, hashList);
+					hashList2 = res.at2;
+					T(t.at1.add(res.at1), hashList2)
+				} {
+					//"not processing % because already seen".format(n.class).postln;
+					t
 				}
+			});
+			T(
+				T(  o.class.asString,
+					if([FoldedES, FoldedFES, FoldedFPSignal].any{ |x| o.class == x }){
+						//"%: Some(T(o.state, o.pureFunc)) = Some(T(%, %)) : %".format(o.class.asString, o.state, o.pureFunc, o).postln;
+						Some(T(o.state, o.pureFunc))
+					}{
+						None()
+					},
+					if( o.isKindOf(ChildFPSignal) || [HoldFPSignal, ApplyFPSignal, Val].includes(o.class) ){Some(o.now)}{None()},
+					parentsResult.at1, //rest of the tree
+				),
+				parentsResult.at2
 			)
 		};
 		makeFRPGraphAnalysis = f;
+
+		g = { |a, b|
+			if( a.at1 != b.at1 ) {
+				//"% % classes don't match ".format(a.at1, b.at1).postln;
+				false
+			}{
+				if( a.at4.size != b.at4.size ) {
+					//"% size doesn't match".format(a.at1).postln;
+					false
+				}{
+					if(a.at4.size > 0 ) {
+						[a.at4, b.at4].flopWith{ |aa,bb|
+							g.(aa,bb)
+						}.reduce({ |aa,bb| aa && bb })
+					}{
+						true
+					}
+
+				}
+			}
+		};
+		checkFRPSameGraph = g;
+
+		h = { |o, rep, previousHashList|
+			var newHashList;
+			var parentsResult;
+			if (previousHashList.isNil) { previousHashList = List.new };
+			newHashList = previousHashList.add(o.hash);
+
+			//"putFRPState - start o: % rep:%".format(o, rep).postln;
+			rep.at2.collect{ |oldState|
+				//"Setting state to % in object %".format(oldState.at1, o).postln;
+				o.state = oldState.at1
+			};
+			rep.at3.collect{ |oldNow|
+				//"Setting now to % in object % with hash %" .format(oldNow, o, o.hash).postln;
+				o.now = oldNow
+			};
+			/*
+			the hashes of all objects already see is kept as state
+			such that the same object will not be processed twice
+			*/
+			[o.nodes, rep.at4].flop.inject( newHashList, { |hashList, n|
+				var o2 = n[0];
+				var rep2 = n[1];
+
+				if (hashList.includes(o2.hash).not) {
+					h.(o2, rep2, hashList);
+				} {
+					//"not processing % because already seen".format(o2.class).postln;
+					hashList
+				}
+			});
+		};
+		putFRPState = h;
 	}
 
 	//networkDescription : Writer( Unit, Tuple3([IO(IO())], [EventStream (IO ())], [Signal] ) )
@@ -63,7 +146,7 @@ EventNetwork {
 	//                                                                                variable of these signals is executed once for initialization
 	//                                                                                purposes
 	*new{ |networkDescription, disableOnCmdPeriod = false, runSignalReactimatesOnce = true|
-		var return = super.newCopyArgs( *this.prMakeActions(networkDescription, disableOnCmdPeriod, runSignalReactimatesOnce) ).init;
+		var return = super.newCopyArgs( *this.prMakeActions(networkDescription, disableOnCmdPeriod, runSignalReactimatesOnce) );
 
 		if( disableOnCmdPeriod ) {
 			CmdPeriod.add(return)
@@ -107,91 +190,37 @@ EventNetwork {
 		^[actuate, pause, finalIOES]
 	}
 
-	init{
-		frpGraphAnalysis = EventNetwork.makeFRPGraphAnalysis.(finalIOES);
-	}
-
 	change{ |networkDescription, disableOnCmdPeriod = false, runSignalReactimatesOnce = true|
-		var check, shapeMatches, functionsMatch;
+		var shapeMatches;
 		var newActuate, newPause, newFinalIOES;
-		var checkFRPSameGraph, putFRPState;
-
-		//  returns T( shapeMatches, functionsMatch)
-		checkFRPSameGraph = { |o, rep|
-
-			if( o.class.asString != rep.at1 ) {
-				//"% % classes don't match ".format(o.class.asString,rep.at1).postln;
-				T(false,false)
-			}{
-				if( o.nodes.size != rep.at4.size ) {
-					//"% size doesn't match".format(o.class.asString).postln;
-					T(false,false)
-				}{
-					var storedFunc = rep.at2.collect(_.at2).monjoin; //T(_,Some(T(o.state, o.pureFunc)),_)
-					var check = { |a,b| a.copy.removeEvery(" \n\t") == b.copy.removeEvery(" \n\t") }.lift
-					.(
-						o.pureFunc.collect{ |x| /*"o: %- o.class: % - o.pureFunc: %".format(o, o.class, x.class).postln; */
-							x.def.sourceCode.asOption
-						}.monjoin,
-						storedFunc.collect{ |x| /*"storedFunc: %".format(x.class).postln; */
-							x.def.sourceCode.asOption
-						}.monjoin
-					).getOrElse(true);
-
-					if( check.not ) {
-						//"% functions don't match: \n% - %".format(o.class.asString,
-						//	o.pureFunc.collect({|x| x.def.sourceCode }), storedFunc.collect({|x| x.def.sourceCode })).postln;
-						T(true,false)
-					}{
-						//"% functions match !!: \n% - %".format(o.class.asString,
-						//	o.pureFunc.collect({|x| x.def.sourceCode }), storedFunc.collect({|x| x.def.sourceCode })).postln;
-						if(o.nodes.size > 0 ){
-							[o.nodes, rep.at4].flopWith{ |a,b|
-								checkFRPSameGraph.(a,b)
-							}.reduce({ |a,b| T(a.at1 && b.at1, a.at2 && b.at2) })
-						}{
-							T(true,true)
-						}
-					}
-				}
-			}
-		};
-
-		putFRPState = { |o, rep|
-			//"putFRPState - start o: % rep:%".format(o, rep).postln;
-			rep.at2.collect{ |oldState|
-				//"Setting state to % in object %".format(oldState.at1, o).postln;
-				o.state = oldState.at1
-			};
-			rep.at3.collect{ |oldNow|
-				//"Setting now to % in object % with hash %" .format(oldNow, o, o.hash).postln;
-				o.now = oldNow
-			};
-			[o.nodes, rep.at4].flopWith{ |o2,rep2|
-				putFRPState.(o2,rep2)
-			}
-		};
+		var graphAnalysisPrevious, graphAnalysisNext;
 
 		#newActuate, newPause, newFinalIOES = EventNetwork.prMakeActions(networkDescription, disableOnCmdPeriod, runSignalReactimatesOnce);
 
-		frpGraphAnalysis = EventNetwork.makeFRPGraphAnalysis.(finalIOES);
-		check = checkFRPSameGraph.( newFinalIOES, frpGraphAnalysis);
-		shapeMatches = check.at1;
-		functionsMatch = check.at2; //not used
 		//stop old network
 		if( this.active ) { pause.unsafePerformIO };
-		//if topology matches put in state from old network
+
+		graphAnalysisPrevious = EventNetwork.makeFRPGraphAnalysis.(finalIOES).at1;
+		graphAnalysisNext = EventNetwork.makeFRPGraphAnalysis.(newFinalIOES).at1;
+		shapeMatches = EventNetwork.checkFRPSameGraph.( graphAnalysisNext, graphAnalysisPrevious);
+
+		//if shape matches put in state from old network
 		if( shapeMatches ) {
 			//"Shape of FRP network matches, putting back old state".postln;
-			putFRPState.(newFinalIOES, frpGraphAnalysis);
+			EventNetwork.putFRPState.(newFinalIOES, graphAnalysisPrevious);
 		};
+
 		//store data for new network
 		actuate = newActuate;
 		pause = newPause;
 		finalIOES = newFinalIOES;
-		frpGraphAnalysis = EventNetwork.makeFRPGraphAnalysis.(newFinalIOES);
+
 		//start new network
 		if( this.active ) { actuate.unsafePerformIO };
+	}
+
+	getFRPGraphAnalysis {
+		 ^EventNetwork.makeFRPGraphAnalysis.(finalIOES)
 	}
 
 	start {
