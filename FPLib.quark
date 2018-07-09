@@ -1,7 +1,7 @@
 (
   name: "FPLib",
   summary: "Functional Programming library for SuperCollider",
-  version: "0.2.1",
+  version: "0.3.0",
   schelp: "FP Lib",
   dependencies: ["JITLibExtensions","https://github.com/miguel-negrao/Modality-toolkit.git@immlib-v0.1.0"],
   license: "GPL3",
