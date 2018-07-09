@@ -9,13 +9,13 @@ NNdef is a child class of link::Classes/Ndef:: that attaches an FRP event networ
 
 CLASSMETHODS::
 
-PRIVATE::buildFRPControlNum,buildCurrentNNdefKey,buildControls,eventNetworkBuilder,buildFRPControlIndex,nextControl, setsToPerform
+PRIVATE::buildFRPControlNum,buildCurrentNNdefKey,buildControls,eventNetworkBuilder,buildFRPControlIndex,nextControl, setsToPerform, new
 
 
 INSTANCEMETHODS::
 
 
-PRIVATE::eventNetworks, frpControls, clear, put
+PRIVATE::eventNetworks, frpControls, clear, put, addToInternalKeys, asENInput, frpControlNames, frpNodeMap, frpStoreControls, initNNdef, internalKeys, internalKeysArray
 
 EXAMPLES::
 
@@ -24,7 +24,7 @@ These examples use the Kork NanoKontrol. If you don't have one available, a gui 
 Let's start with normal NNdef without midi controls:
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 
 	RLPF.ar( Pulse.ar(400), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup
 
@@ -32,7 +32,7 @@ NNdef(\test, {
 )
 ::
 
-We will now control the amplitude with the first slider of the first page of the nanokontrol. First we get the MKtlElement for the slider with code::k[\sl][page][column]::. Then we create an frp signal element with enIn. Finally we connect the FPSignal to a NamedControl using code::.enKr::.
+We will now control the amplitude with the first slider of the first page of the nanokontrol. First we get the MKtlElement for the slider with code::k[\sl][page][column]::. Then we create an frp signal element with enInSig. A signal contains a current value. In this case it is better to use a signal as then there will a be start value which is the current value of the slider. Finally we connect the FPSignal to a NamedControl using code::.enKr::.
 
 First create the Modality object representing a real or virtual Korg Nanokontrol:
 
@@ -42,12 +42,12 @@ MKtl('nnkn0', "korg-nanokontrol").gui
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
 	var column = 0;
-	var amp = k[\sl][page][column].enIn.enKr(lag: 0.1);
+	var amp = k[\sl][page][column].enInSig.enKr(lag: 0.1);
 
 	RLPF.ar( Pulse.ar(400), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
 
@@ -60,12 +60,12 @@ We can also control the frequency of the oscilator with a second slider. In this
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
-	var amp = k[\sl][page][0].enIn.enKr(lag: 0.1);
-	var freq = k[\sl][page][1].enIn.enKrUni(lag: 0.1, spec: \freq.asSpec);
+	var amp = k[\sl][page][0].enInSig.enKr(lag: 0.1);
+	var freq = k[\sl][page][1].enInSig.enKrUni(lag: 0.1, spec: [80,5000,\exp, 80].asSpec);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
 
@@ -77,12 +77,12 @@ We can post values for debugging by supplying a label to link::Classes/FPSignal#
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
-	var amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1);
-	var freq = k[\sl][page][1].enIn.enDebug("freq").enKrUni(lag: 0.1, spec: \freq.asSpec);
+	var amp = k[\sl][page][0].enInSig.enDebug("amp").enKr(lag: 0.1);
+	var freq = k[\sl][page][1].enInSig.enDebug("freq").enKrUni(lag: 0.1, spec: [80,5000,\exp, 80].asSpec);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
 
@@ -94,12 +94,12 @@ It's also possible to explicitly set the name of the controls. This is useful fo
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
-	var amp = k[\sl][page][0].enIn.enKr(lag: 0.1, key:\amp, debug:true);
-	var freq = k[\sl][page][1].enIn.enKrUni(lag: 0.1, key:\freq, spec: \freq.asSpec, debug:true);
+	var amp = k[\sl][page][0].enInSig.enKr(lag: 0.1, key:\amp, debug:true);
+	var freq = k[\sl][page][1].enInSig.enKrUni(lag: 0.1, key:\freq, spec: [80,5000,\exp, 80].asSpec, debug:true);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
 
@@ -109,19 +109,25 @@ NNdef(\test, {
 NdefMixer(s)
 ::
 
-Using the buttons as a sequencer:
+Using the buttons as a sequencer.Although every time the nndef is re-evaluated the FRP network is recreated, if the network has has the same shape (for instance you only made changes in the function passed to link::Classes/EventSource#collect::) then the state from the previous version of the networked is copied over to the new network, in particular the values stored in the inject and signal nodes are copied. That means that after re-evaluating the NNdef below the last button pressed and its frequency value is remembered.
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
-	var amp = k[\sl][page][0].enIn.enKr(lag: 0.1, key: \amp, debug:true);
+	var amp = k[\sl][page][0].enInSig.enKr(lag: 0.1, key: \amp, debug:true);
 	var freq = k[\bt][page].flat.collect{ |mktlElement,i|
 		var freq0 = 440 * (2**(i/12));
-		mktlElement.enInES.collect{ freq0 }
-	}.mreduce.enDebug("freq").enKr(lag: 0.1);
+		//here enIn is used as we want an EventSource so that we can then
+		//merge them all.
+		mktlElement.enIn.collect{ freq0 }
+	}
+	.mreduce // merge all the event sources
+	.enDebug("freq")
+	.hold(440)
+	.enKr(lag: 0.1);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
 
@@ -133,15 +139,15 @@ Percussive version using link::Classes/EventSource#enTr:: which creates a link::
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
-	var amp = k[\sl][page][0].enIn.enKr(lag: 0.1, key: \amp, debug:true);
+	var amp = k[\sl][page][0].enInSig.enKr(lag: 0.1, key: \amp, debug:true);
 	var buttons = k[\bt][page].flat;
 	var freqES = buttons.collect{ |mktlElement,i|
 		var freq0 = 440 * (2**(i/12));
-		mktlElement.enInES.collect{ freq0 }
+		mktlElement.enIn.collect{ freq0 }
 	}.mreduce;
 	var freq = freqES.enKr(lag: 0.1, key: \freq, debug:true, spec:nil);
 
@@ -154,21 +160,25 @@ NNdef(\test, {
 ::
 
 
-Adding sliders for the LFNoise1 range:
+Adding sliders for the LFNoise1 range. enKrUni is used as the value should be automatically mapped from [0,1] to the range in spec.
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 
 	var page = 0;
-	var amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1);
+	var amp = k[\sl][page][0].enInSig.enDebug("amp").enKr(lag: 0.1);
 	var freq = k[\bt][page].flat.collect{ |mktlElement,i|
 		var freq0 = 440 * (2**(i/12));
-		mktlElement.enInES.collect{ freq0 }
-	}.mreduce.enDebug("freq").hold(440).enKr(lag: 0.1, key: freq);
-	var lo = k[\sl][page][1].enIn.enDebug("lo").enKrUni(lag: 0.1, spec: \freq);
-	var hi = k[\sl][page][2].enIn.enDebug("hi").enKrUni(lag: 0.1, spec: \freq);
+		mktlElement.enIn.collect{ freq0 }
+	}
+	.mreduce
+	.enDebug("freq")
+	.hold(440)
+	.enKr(lag: 0.1, key: freq);
+	var lo = k[\sl][page][1].enInSig.enDebug("lo").enKrUni(lag: 0.1, spec: \freq);
+	var hi = k[\sl][page][2].enInSig.enDebug("hi").enKrUni(lag: 0.1, spec: \freq);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(lo,hi), 0.1 ) * 0.1.dup * amp
 
@@ -180,21 +190,27 @@ if play button is pressed we use higher octave. code:: { |octave, e| octave*freq
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 	var page = 0;
 
-	var octaveSig = k[\play].enIn.collect(_+1);
+	var octaveSig = k[\tr][\play].enInSig.collect(_+1)
+	.enDebug("octaveSig");
 
-	var amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1);
+	var amp = k[\sl][page][0].enInSig.enDebug("amp").enKr(lag: 0.1, key:\amp);
 
+	var f0 = 100;
 	var freq = k[\bt][page].flat.collect{ |mktlElement,i|
-		var freq0 = 100 * (2**(i/12));
-		{ |octave, e| octave*freq0 } <%> octaveSig <@> mktlElement.enInES;
-	}.mreduce.enDebug("freq").hold(100).postln.enKr(lag: 0.1);
+		var freq0 = f0 * (2**(i/12));
+		{ |octave, e| octave*freq0 } <%> octaveSig <@> mktlElement.enIn;
+	}
+	.mreduce //merge all event sources
+	.enDebug("freq")
+	.hold(f0) //start with f0=100Hz
+	.enKr(lag: 0.1, key:\freq);
 
-	var lo = k[\sl][page][1].enIn.enDebug("lo").enKr(lag: 0.1, spec: \freq);
-	var hi = k[\sl][page][2].enIn.enDebug("hi").enKr(lag: 0.1, spec: \freq);
+	var lo = k[\sl][page][1].enInSig.enDebug("lo").enKrUni(lag: 0.1, spec: \freq, key:\filt_low);
+	var hi = k[\sl][page][2].enInSig.enDebug("hi").enKrUni(lag: 0.1, spec: \freq, key:\filt_high);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(lo,hi), 0.1 ) * 0.1.dup * amp
 
@@ -206,24 +222,29 @@ Use arrow keys to switch octave:
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elementGroup;
 	var page = 0;
 
-	var octaveUpES = k[\fwd].enInES.select(_==1).collect{ {|x| (x+1).min(3) } };
-	var octaveDownES = k[\rew].enInES.select(_==1).collect{ {|x| (x-1).max(-3) } };
+	var octaveUpES = k[\tr][\fwd].enIn.select(_==1).collect{ {|x| (x+1).min(3) } };
+	var octaveDownES = k[\tr][\rew].enIn.select(_==1).collect{ {|x| (x-1).max(-3) } };
 
 	var octaveSig = (octaveUpES | octaveDownES).injectFSig(0).enDebug("octave");
 
-	var amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1);
+	var amp = k[\sl][page][0].enInSig.enDebug("amp").enKr(lag: 0.1, key:\amp);
 
+	var f0 = 100;
 	var freq = k[\bt][page].flat.collect{ |mktlElement,i|
-		var freq0 = 440 * (2**(i/12));
-		{ |octave, e| (2**octave)*freq0 } <%> octaveSig <@> mktlElement.enInES;
-	}.mreduce.enDebug("freq").hold(100).postln.enKr(lag: 0.1);
+		var freq0 = f0 * (2**(i/12));
+		{ |octave, e| (2**octave)*freq0 } <%> octaveSig <@> mktlElement.enIn;
+	}
+	.mreduce //merge all event sources
+	.enDebug("freq")
+	.hold(f0) //start with f0=100Hz
+	.enKr(lag: 0.1, key:\freq);
 
-	var lo = k[\sl][page][1].enIn.enDebug("lo").enKr(lag: 0.1, spec: \freq);
-	var hi = k[\sl][page][2].enIn.enDebug("hi").enKr(lag: 0.1, spec: \freq);
+	var lo = k[\sl][page][1].enInSig.enDebug("lo").enKrUni(lag: 0.1, spec: \freq, key:\filt_low);
+	var hi = k[\sl][page][2].enInSig.enDebug("hi").enKrUni(lag: 0.1, spec: \freq, key:\filt_high);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(lo,hi), 0.1 ) * 0.1.dup * amp
 
@@ -235,29 +256,39 @@ If play is pressed amp slider is in 'zoom' mode:
 
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elements;
 	var page = 0;
 
 	var freqSig; //for recursive use
 	var freq, amp;
 
-	var zoom = k[\play].enInES.collect{ |x| x * freqSig.now }.hold(0);
+	//zoom and freqSig are mutually recursive defintions
+	//cannot have mutually recursive variable definitions in SC
+	//so we put freqSig inside a closure
+	//and use the valueSampled method
+	var zoom = { |a,b| a*b}.liftRecSampled({freqSig}, k[\tr][\play].enIn
+	.select{|x| x == 1}
+	.inject(0,{|x|1-x}) //make a toggle
+	.enDebug("zoom") //see zoom state
+	)
+	.hold(0);
 
-	var freqSliderSig = k[\sl][page][1].enIn;
+	var freqSliderES = k[\sl][page][1].enIn;
 
-	freqSig = { |slider, zoom|
+	freqSig = ({ |zoom, slider|
 		if(zoom != 0) {
-			zoom * slider.linlin(0.0,1.0,0.9,1.1)
+			slider.linlin(0.0,1.0,zoom-0.1,zoom+0.1)
 		} {
 			slider
 		}
-	}.lift.(freqSliderSig,zoom)
+	} <%> zoom <@> freqSliderES)
+	.hold(0.5)
 	.enDebug("freq");
 
-	freq = freqSig.enKr(lag: 0.1, spec: \freq.asSpec);
+	freq = freqSig.enKrUni(lag: 0.1, spec: \freq.asSpec, key: \freq);
 
-	amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1);
+	amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1, key: \amp);
 
 	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
 
@@ -265,29 +296,89 @@ NNdef(\test, {
 )
 ::
 
-Another way of doing the same using link::Classes/FPSignal#when:: :
-
+Now with pick up when in zoom mode
 code::
 (
-NNdef(\test, {
+NNdef(\x, {
 	var k = MKtl('nnkn0').elements;
 	var page = 0;
 
 	var freqSig; //for recursive use
 	var freq, amp;
 
-	var freqSliderES = k[\sl][page][1].enInES;
+	var zoom = { |a,b| a*b}.liftRecSampled({freqSig}, k[\tr][\play].enIn
+	.select{|x| x == 1}
+	.inject(0,{|x|1-x}) //make a toggle
+	.enDebug("zoom") //see zoom state
+	)
+	.hold(0);
 
-	var zoomBool = k[\play].enInES.collect(_.booleanValue).enDebug("zoomBool");
-	var zoomBoolSig = zoomBool.hold(false);
-	var lastValue = zoomBool.select(I.d).collect{ freqSig.now }.hold(0.5).enDebug("lastValue");
-	var zoomMode = when(zoomBoolSig, { |a,b|a*b.linlin(0.0,1.0,1/1.01,1.01) } <%> lastValue <@> freqSliderES );
-	var normalMode = when(zoomBoolSig.collect(_.not), freqSliderES);
+	var freqSliderES = k[\sl][page][1].enIn;
 
-	freqSig = (zoomMode | normalMode).hold(0.5)
+	var x = { |zoom, slider|
+		T(zoom, slider)
+	} <%> zoom <@> freqSliderES;
+
+	freqSig = x.injectSig(T(true,0,5), { |state, tup|
+		var zoom = tup.at1;
+		var slider = tup.at2;
+		var valuePickedUp = state.at1;
+		if(zoom != 0) {
+			var newVal = slider.linlin(0.0,1.0,zoom-0.1,zoom+0.1);
+			if (valuePickedUp) {
+				T(true, newVal)
+			} {
+			if ( (newVal - zoom).abs.postln < 0.01) {
+					T(true, newVal)
+				} {
+					T(false, zoom)
+				}
+			}
+		} {
+			T(false,slider)
+		}
+	})
+	.enDebug("freqInject")
+	.collect(_.at2)
 	.enDebug("freq");
 
-	freq = freqSig.enKr(lag: 0.1, spec: \freq.asSpec);
+	freq = freqSig.enKrUni(lag: 0.1, spec: \freq.asSpec, key: \freq);
+
+	amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1, key: \amp);
+
+	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(1000,4000), 0.1 ) * 0.1.dup * amp
+
+}).play
+)
+::
+
+Another way of doing the same using link::Classes/FPSignal#if:: :
+
+code::
+(
+NNdef(\x, {
+	var k = MKtl('nnkn0').elementGroup;
+	var page = 0;
+
+	var freqSig; //for recursive use
+	var freq, amp;
+
+	var freqSliderES = k[\sl][page][1].enIn;
+
+	var zoomBoolES = k[\tr][\play].enIn
+	.select{|x| x == 1}
+	.collect(_.booleanValue)
+	.inject(false,_.not)
+	.enDebug("zoomBool");
+	var zoomBoolSig = zoomBoolES.hold(false);
+
+	var lastValueSig = { |freq, val| freq }.liftRecSampled({freqSig}, zoomBoolES.select(I.d)).hold(0.5).enDebug("lastValue");
+	var zoomModeES = { |lastValue,slider| slider.linlin(0.0,1.0,lastValue-0.1,lastValue+0.1) } <%> lastValueSig <@> freqSliderES;
+
+	freqSig = if(zoomBoolSig, zoomModeES, freqSliderES).hold(0.5)
+	.enDebug("freq");
+
+	freq = freqSig.enKrUni(lag: 0.1, spec: \freq.asSpec, key: \freq);
 
 	amp = k[\sl][page][0].enIn.enDebug("amp").enKr(lag: 0.1);
 

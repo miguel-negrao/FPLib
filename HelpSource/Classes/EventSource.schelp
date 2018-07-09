@@ -11,30 +11,304 @@ For more info see:
 
 http://www.reactive-web.co.cc/core/EventStream
 
+The combinators interface is essentialy a copy of reactive-banana Haskell library.
 
 SUBSECTION::Type Classes
-EventSource is an instance of the Functor Type Class.
 
-
+EventSource is an instance of the Functor and Monoid Type Classes.
 
 CLASSMETHODS::
 
-PRIVATE:: availableTemplates, cleanTemplateName, eventStreamTemplateFolders, getEventSourceTemplate,getTemplateFilePaths
+PRIVATE:: new, newNoLog
+
+
+method::zero
+returns:: EventStream[A]
+discussion::
+Zero of Monoid Type Class. Returns an event source that never fires.
 
 instancemethods::
 
-PRIVATE:: addListener, doesNotUnderstand, initEventSource, listeners, proc, removeListener
+PRIVATE:: addListener, initEventSource, listeners, proc, removeListener, prEnGeneric, initNoLog, prEnGenericUni, prMakeStorableES,  storeWithT, storePreviousWithT, switchSig, switchSig2, takeWhile, |
 
-method:: new
 
-Create a new EventSource
+SUBSECTION::Combinators
+
+Methods to combine EventSource's into a network of event processing nodes.
+These combinators should be used inside an ENdef or NNdef.
+
+method::hold
+argument::initialValue
+The current ('now') value for the returned FPSignal.
+returns:: An FPSignal that holds the last value of the EventSource
+
+method::collect
+returns::A new EventStream, that for every event that this EventStream fires, that one will fire an event that is the result of applying 'f' to this EventStream's event.
+discussion::
+
+code::
+//Create a slider:
+w = Slider().front;
+
+
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	w.enIn
+	.collect( _*100 )
+	.enDebug("val");
+}).start
+)
+::
+
+method::select
+returns::A new EventStream that propagates a subset of the events that this EventStream fires.
+discussion::
+code::
+
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	w.enIn
+	.select( _ < 0.5 )
+	.enDebug("val");
+}).start
+)
+
+::
+
+method::inject
+argument::initial
+initialValue
+argument::f
+state altering function
+returns:: A new EventStream that, for every event t fired by the original EventStream, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
+discussion::
+
+Allows one, in a functional manner, to respond to an event while taking into account past events. For every event t, f is called with arguments (u, t), where u is initially the value of the 'initial' parameter, and subsequently the result of the previous application of f.
+
+code::
+w = Slider().front;
+
+//get current and last value
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	w.enIn
+	.inject( [0,0], {|state, newValue| [state[1], newValue] })
+	.enDebug("val");
+}).start
+)
+
+//sum 1
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	w.enIn
+	.inject( 0, {|state, newValue| state + 1 })
+	.enDebug("val");
+}).start
+)
+::
+
+method::injectSig
+argument::initial
+initialValue
+argument::f
+state altering function
+returns:: A new EventStream that, for every event t fired by the original EventStream, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
+discussion::
+
+Creates a signal initialized with the initial state.
+
+method::injectF
+argument:: initial
+initial value
+returns:: A new EventStream that, for every event f fired by the original EventStream, fires the result of the application of f to the current state s.
+
+code::
+(
+a = Button().states_([["+"]]);
+b = Button().states_([["-"]]);
+w = Window().layout_(HLayout(a,b)).front;
+)
+
+//sum and subtract
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	var aES = a.enIn.collect{{|x| x+1 }};
+	var bES = b.enIn.collect{{|x| x-1 }};
+	(aES |+| bES).injectF(0)
+	.enDebug("val");
+}).start
+)
+::
+
+method::injectFSig
+argument:: initial
+initial value
+returns:: A new EventStream that, for every event f fired by the original EventStream, fires the result of the application of f to the current state s. Creates a signal initialized with the initial state.
+
+code::
+(
+a = Button().states_([["+"]]);
+b = Button().states_([["-"]]);
+c = Slider();
+w = Window().layout_(HLayout(a,b,c)).front;
+)
+
+//sum and subtract
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	var aES = a.enIn.collect{{|x| x+1 }};
+	var bES = b.enIn.collect{{|x| x-1 }};
+	var stateSig = (aES |+| bES).injectFSig(0)
+	.enDebug("counter");
+	stateSig.sampleOn(c.enIn)
+	.enDebug("sampled");
+}).start
+)
+::
+
+method::|+|
+Merges the output of the two EventSources.
+discussion::
+code::
+(
+a = Slider();
+b = Slider();
+w = Window().layout_(HLayout(a,b)).front;
+)
+//get events from a or b
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	var aES = a.enIn;
+	var bES = b.enIn;
+	(aES |+| bES)
+	.enDebug("val");
+}).start
+)
+::
+
+method::merge
+the same as code::|+|::
+
+method:: switchTo
+Create a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
+
+argument::f
+f the function that is applied for every event to produce the next segment of the resulting EventStream.
+argument::initES
+the initial EventStream to use.
+discussion::
+code::
+
+(
+a = Button().states_([["a"],["b"]]);
+b = Slider();
+c = Slider();
+w = Window().layout_(HLayout(a,b,c)).front;
+)
+//upon pressing the button alternates between letting through events only from b or only from c
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	var bES = b.enIn;
+	var cES = c.enIn;
+	a.enIn.switchTo({ |x|
+		x.postln;
+		if(x == 0){
+			bES
+		}{
+			cES
+		}
+	}, bES)
+	.enDebug("val");
+}).start
+)
+::
+
+SUBSECTION::Persistable nodes
+
+method::holdStore
+
+method::injectFSigStore
+
+method::injectFStore
+
+SUBSECTION::Utilities
+
+method::expexp
+
+method::explin
+
+method::linexp
+
+method::linlin
+
+method::lincurve
+
+method::curvelin
+
+method::nexp
+
+method::nlin
+
+method::storePrevious
+
+method::selectSome
+
+method::paged
+
+method::mapWith
+Map value with spec
+
+method::onlyChanges
+Block values which are equal to the last value.
+
+SUBSECTION::Event Network - Monadic interface
+
+method::reactimate
+returns:: nil
+
+discussion::
+
+This EventStream should carry values of class IO with actions to be performed. This method should be called when defining an EventNetwork with the monadic interface.
+
+method::debug
+
+SUBSECTION::Event Network - Imperative interface
+
+method::enOut
+This EventStream should carry values of class IO with actions to be performed. This method should be called when defining an EventNetwork with the monadic interface.
+
+method::enDebug
+Post incoming values to the post window with label.
+
+SUBSECTION::NNdef
+
+method::enKr
+
+method::enKrUni
+
+method::enAr
+
+method::enArUni
+
+method::enTr
+
+
+SUBSECTION::Perform Side-Effects
+
+When doing proper FRP (i.e. using ENdef or NNdef) these methods should not be used.
 
 METHOD:: fire
 
 Emit an event to all registered listeners.
 This will send an event into the event processing network.
-
-SUBSECTION::Perform Side-Effects
 
 method::do
 Run f every time a new event arrives.
@@ -93,137 +367,6 @@ x.fire(3)
 )
 ::
 
-SUBSECTION::Combinators
-
-Methods to combine EventSource's into a network of event processing nodes.
-
-method::hold
-argument::initialValue
-The current ('now') value for the returned FPSignal.
-returns:: An FPSignal that holds the last value of the EventSource
-
-method::collect
-returns::A new EventStream, that for every event that this EventStream fires, that one will fire an event that is the result of applying 'f' to this EventStream's event.
-discussion::
-code::
-(
-x = EventSource();
-y = x.collect( _*100 );
-y.do(_.postln);
-x.fire(2)
-)
-::
-
-method::select
-returns::A new EventStream that propagates a subset of the events that this EventStream fires.
-discussion::
-code::
-(
-x = EventSource();
-y = x.select( _ < 2 );
-y.do(_.postln);
-x.fire(1);
-x.fire(4);
-)
-::
-
-method::inject
-Allows one, in a functional manner, to respond to an event while taking into account past events. For every event t, f is called with arguments (u, t), where u is initially the value of the 'initial' parameter, and subsequently the result of the previous application of f.
-returns:: A new EventStream that, for every event t fired by the original EventStream, fires the result of the application of f (which will also be the next value of u passed to it). Often 'u' will be an object representing some accumulated state.
-discussion::
-An EventStream that sums all the integer values fired by the parent EventStream.
-code::
-(
-x = EventSource();
-y = x.inject( 0, {|state,b| state + b });
-y.do(_.postln);
-x.fire(1);
-x.fire(4);
-x.fire(7)
-)
-::
-
-method::flatCollect
-Create a new EventStream that consists of the events of the EventStreams returned by f. f is applied on every event of the original EventStream, and its returned EventStream is used until the next event fired by the original EventStream, at which time the previously returned EventStream is no longer used and a new one is used instead.
-
-argument::f
-f the function that is applied for every event to produce the next segment of the resulting EventStream.
-discussion::
-code::
-(
-x = EventSource();
-y = EventSource();
-z = EventSource();
-w = x >>= { |v|
- if(v==0){y}{z}
-};
-w.do(_.postln);
-)
-(
-//will get value from y
-x.fire(0);
-y.fire(1);
-z.fire(4);
-)
-(
-//will get value from z
-x.fire(1);
-y.fire(1);
-z.fire(4);
-)
-
-method::|
-Merges the output of the two EventSources.
-discussion::
-code::
-(
-x = EventSource();
-y = EventSource();
-z = x | y;
-z.do({ |x| ("received: "++x).postln});
-x.fire(1);
-y.fire(4);
-)
-::
-
-
-
-method::merge
-the same as code::|::
-
-method::takeWhile
-returns::An EventSource that will fire the events coming from the parent until f evaluates to false, at which point it will not fire anything else.
-discussion::
-code::
-(
-x = EventSource();
-z = x.takeWhile( _ < 10);
-z.do({ |x| ("received: "++x).postln});
-x.fire(1);
-x.fire(4);
-x.fire(7);
-x.fire(13);
-x.fire(4);
-)
-::
-
-method::apply
-Apply a the funtion contained in the FPSignal to each incoming event
-
-code::
-(
-var e = EventSource();
-var fsig = Var(_+1);
-e.apply(fsig).do(_.postln);
-e.fire(1);
-e.fire(2);
-fsig.value_(_*10);
-e.fire(1);
-e.fire(2);
-)
-
-SUBSECTION::Disconnect from network
-
 method::remove
 
 Disconnects this EventStream from the parent EventStream (if it has a parent). If the EventStream is not assigned to any variable anymore it will be gc'ed.
@@ -265,68 +408,4 @@ x.fire(3);
 )
 ::
 
-SUBSECTION:: Interaction with Server
-
-method::bus
-
-create a bus and add a function to the event stream that updates the bus.
-
-returns:: Some( Tuple2( Bus, Function ) ). The function is returned to be able to stop updating the Bus in the future. If the server is not running returns None().
-
-code::
-x = { SinOsc.ar( \freq.kr(400) )*0.1 }.play
-
-(
-y = EventSource();
-b = y.bus(s, 900);
-//b might be None() if the server is not running.
-b.do{ |z| x.map(\freq, z.at1) }
-)
-
-//change freq to 200
-y.fire( 200 );
-::
-
-SUBSECTION:: Interaction with GUIs
-You can use code::esFromGUI:: to get an EventSource from the GUI and the method 'connect' to connect the end of the network to an object that responds to value_
-
-METHOD::connect
-
-Connect this EventSource to an object. Everytime the EventSource fires an event the object's value_ method is called with the value.
-ARGUMENT:: object
-An object that responds to value_
-
-Examples::
-
-code::
-//Using a timer
-(
-// args delta (s), maxTime(s)
-// will output every delta seconds until maxTime is reached.
-x = TimerES(1,10);
-x.do({ |x| ("received: "++x).postln});
-)
-
-::
-
-With GUIs:
-
-
- code::
-(
-t = QTextField();
-b = Button();
-b.esFromGUI.inject(0, { |state, x| state+1 }).connect(t);
-w = Window(bounds:Rect(200,200,130,50)).layout_( HLayout( b, t ) ).front;
-)
-::
-
-code::
-(
-t = QTextField();
-b = Slider().orientation_(\horizontal);
-b.esFromGUI.collect{ |x| x.linexp(0.0,1.0,300,6000) }.connect(t);
-w = Window(bounds:Rect(200,200,300,50)).layout_( HLayout( b, t ) ).front;
-)
-::
 

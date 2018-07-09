@@ -7,8 +7,6 @@ Monad, Functor, Applicativer Functor, etc, so it is advised to read up on these 
 A good source is link::http://learnyouahaskell.com/::.
 The library is also very much inspired by ScalaZ: https://github.com/scalaz/scalaz
 
-SC is a dynamic language, it does not have typed functions, therefore this adaptation of the Haskell type classes, which as the name suggests, rely on types, might not always make sense. The type classes are implemented using dictionary look ups for the correct function to use. This might introduce a bit of overhead, so use with caution, specially for large data structures or when repeating the same function evaluation many time per second.
-
 Note::
 SuperCollider does not curry functions by default, so if a type class instance function requires a curried function this should be done manually. A 'curried' method was introduced for this. For applicative functors, code::<%>:: automatically curries the function.
 

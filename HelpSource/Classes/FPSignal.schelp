@@ -11,91 +11,18 @@ For more info see:
 
 http://www.reactive-web.co.cc/core/Signal
 
-subsection:: Type Classes
+The combinators interface is essentialy a copy of reactive-banana Haskell library.
 
-
-Traverse: Because Array is an instance of the Traverse type class you can transform arrays of FPSignals into an FPSignal that emits arrays using 'sequence':
-
-code::
-(
-x = Var(1.0);
-y = Var(2.0);
-z = Var(3.0);
-z = [x,y,z].sequence;
-z.now;
-)
-::
+SUBSECTION::Type Classes
+EventSource is an instance of the Functor and Applicative Functor Type Classes.
 
 CLASSMETHODS::
 
-PRIVATE:: buildFlatCollect
-
-METHOD:: new
-
-not to be used directly, use instead Var or Val.
+PRIVATE:: new
 
 instancemethods::
 
-PRIVATE::initFPSignal
-
-method::now
-the current value of the Signal
-
-
-SUBSECTION::Perform Side-Effects
-
-method::do
-When the Signal changes, runs f with new value.
-
-code::
-(
-x = Var(0);
-f = { |x| postln("look what I got:"++x) };
-x.do(f);
-x.value_(3)
-)
-
-//stop the action
-(
-x.stopDoing(f);
-x.value_(4)
-)
-::
-
-method::doDef
-
-Run f every time a new event arrives and save the function using the name given
-
-argument::name
-A key
-argument::f
-The function to call
-returns:: Unit
-
-code::
-(
-x = Var(0);
-x.doDef(\hello,{ |x| postln("look what I got:"++x) });
-x.value_(3)
-)
-(
-x.doDef(\hello,{ |x| postln("And now I print it like this:"++x) });
-x.value_(3)
-)
-(
-//remove the action
-x.doDef(\hello);
-x.value_(3)
-)
-::
-
-method::stopDoing
-
-Stop running function f.
-argument::f
-A function
-returns:: Unit
-
+PRIVATE::initFPSignal, now
 
 SUBSECTION::Combinators
 
@@ -236,8 +163,31 @@ timer.start.unsafePerformIO
 )
 ::
 
+method::<*>
+Applicative functor. Apply a time-varying function to time-varying value.
+
+code::
+(
+a = Slider();
+b = Slider();
+w = Window().layout_(HLayout(a,b)).front;
+)
+
+(
+ENdef(\x).clear;
+ENdef(\x, {
+	//first slider as signal
+	var aES = a.enInSig;
+	var bES = b.enIn;
+	(aES |+| bES)
+	.enDebug("val");
+}).start
+)
+
 method::<@>
 Apply a time varying function to incoming events
+
+
 
 code::
 (
@@ -263,8 +213,137 @@ z.fire(2)
 )
 ::
 
+method::when
+argument:: es
+EventStream[A]
+returns:: EventStream[A]
+discussion::
+
+When an event arrives from es, if this signal contains the true value then the event goes through.
+
+method::if
+argument:: trueES
+EventStream[A]
+argument:: falseES
+EventStream[A]
+returns:: EventStream[A]
+discussion::
+
+If the current value of this signal is true then events from trueES pass through, otherwise events from falseES pass trough.
+
+SUBSECTION::Utilities
+
+method::expexp
+
+method::explin
+
+method::linexp
+
+method::linlin
+
+method::lincurve
+
+method::curvelin
+
+method::nexp
+
+method::nlin
+
+method::storePrevious
+
+method::mapWith
+Map value with spec
+
+SUBSECTION::Event Network - Monadic interface
+
+method::reactimate
+returns:: nil
+
+discussion::
+
+This FPSignal should carry values of class IO with actions to be performed. This method should be called when defining an EventNetwork with the monadic interface.
+
+method::debug
+
+SUBSECTION::Event Network - Imperative interface
+
+method::enOut
+This FPSignal should carry values of class IO with actions to be performed. This method should be called when defining an EventNetwork with the monadic interface. The action which is the current value of the FPSignal will be executed when the network is compiled. This usefull for initialization.
+
+method::enDebug
+Post incoming values to the post window with label.
+
+SUBSECTION::NNdef
+
+method::enKr
+
+method::enKrUni
+
+method::enAr
+
+method::enArUni
+
+
+SUBSECTION::Perform Side-Effects
+
+Usually FPSignal child classes should be used inside an ENdef or NNdef. Nevertheless it is possible to add call-backs directly, although this is not recommended:
+
+method::do
+When the Signal changes, runs f with new value.
+
+code::
+(
+x = Var(0);
+f = { |x| postln("look what I got:"++x) };
+x.do(f);
+x.value_(3)
+)
+
+//stop the action
+(
+x.stopDoing(f);
+x.value_(4)
+)
+::
+
+method::doDef
+
+Run f every time a new event arrives and save the function using the name given
+
+argument::name
+A key
+argument::f
+The function to call
+returns:: Unit
+
+code::
+(
+x = Var(0);
+x.doDef(\hello,{ |x| postln("look what I got:"++x) });
+x.value_(3)
+)
+(
+x.doDef(\hello,{ |x| postln("And now I print it like this:"++x) });
+x.value_(3)
+)
+(
+//remove the action
+x.doDef(\hello);
+x.value_(3)
+)
+::
+
+method::stopDoing
+
+Stop running function f.
+argument::f
+A function
+returns:: Unit
 
 SUBSECTION::Disconnect from network
+
+Usually FPSignal child classes should be used inside an ENdef or NNdef. It is possible to manipulate the FRP graph directly, although this is not recommended:
+
 
 method::remove
 
@@ -304,103 +383,5 @@ x.value_(2);
 x.reset;
 x.value_(3);
 //nothing is posted
-)
-::
-
-SUBSECTION:: Interaction with Server
-
-method::bus
-
-create a bus and add a function to the event stream that updates the bus.
-
-returns:: Some( Tuple2( Bus, Function ) ). The function is returned to be able to stop updating the Bus in the future. If the server is not running returns None().
-
-code::
-x = { SinOsc.ar( \freq.kr(400) )*0.1 }.play
-
-(
-y = Var(900);
-b = y.bus(s);
-//b might be None() if the server is not running.
-b.do{ |z| x.map(\freq, z.at1) }
-)
-
-//change freq to 200
-y.value_( 200 );
-::
-
-
-SUBSECTION:: Interaction with GUIs
-You can use code::signalFromGUI:: to get an FPSignal from the GUI and the method 'connect' to connect the end of the network to an object that responds to value_
-
-METHOD::connect
-
-Connect this FPSignal to an object. Everytime the FPSignal fires an event the object's value_ method is called with the value.
-ARGUMENT:: object
-An object that responds to value_
-
-Examples::
-
-Combine Signals using a function:
-
-code::
-(
-x = Var(1.0);
-y = Var(1.0);
-z = Var(1.0);
-w = { |x,y,z| x + y + z } <%> x <*> y <*> z; //analogous to { |x,y,z| x + y + z }.(1.0,1.0,1.0)
-w.do( postln(_) );
-x.value_(9.0);
-y.value_(3.0);
-z.value_(1.0);
-)
-::
-
-FPSignal is a Applicative Functor so we can use the apply method <*>. Applicative Functors in essence allow to "lift" a n-ary function from a domain A to a domain B, in this case it lifts functions on any type to functions on FPSignals.
-We could define a lift function for each number of arguments like so:
-code::
-~lift2 = { |f| { |a,b| f <%> a <*> b } };
-~lift3 = { |f| { |a,b,c| f <%> a <*> b <*> c } };
-...
-::
-
-then the above would be equivalent to :
-code::
-(
-x = Var(1.0);
-y = Var(1.0);
-z = Var(1.0);
-f = { |x,y,z| x + y + z };
-//we apply the lifted function on the signals.
-w = ~lift3.(f).(x,y,z);
-w.do( postln(_) );
-x.value_(9.0);
-y.value_(3.0);
-z.value_(1.0);
-)
-::
-
-The applicative functor type class also provides two useful functions  code::a <* b:: and code::a *> b::. The first will ignore the result of b the second will ignore the result of a. This is useful when you want some signal to cause the value of some other signal to be outputed. In the following example the timer causes the the value of f <%> x to be emited by the resulting signal each time t emits a new time:
-
-code::
-(
-x = Var(2.0);
-f = _+1;
-t = TimerES(1.0).hold(0.0);
-z = f <%> x <* t;
-z.do(postln(_))
-)
-::
-
-With GUIs:
-
-Notice that text field automatically has the correct start value. Initialization of the GUIs (or anything else) is automatic when using signals.
-
-code::
-(
-t = QTextField();
-b = Slider().orientation_(\horizontal);
-b.signalFromGUI.collect{ |x| x.linexp(0.0,1.0,300,6000) }.connect(t);
-w = Window(bounds:Rect(200,200,300,50)).layout_( HLayout( b, t ) ).front;
 )
 ::
