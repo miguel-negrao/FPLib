@@ -119,7 +119,7 @@ TestFRP : UnitTest {
 			.enOut;
 		});
 		fire1.("after");
-		this.assert((before == "ok_before") && (after == "ok_after"),"after re-evaluation the same FRP graph signal state (now value) should be kept.")
+		this.assert((before == "ok_before") && (after == "ok_after"),"after re-evaluation the same FRP graph signal state (now field of FPSignal) should be kept.")
 	}
 
 	test_ENdefState_clear {
@@ -172,7 +172,7 @@ TestFRP : UnitTest {
 			var es = EventNetwork.enFromAddHandler(registerAction);
 			es
 			//.enDebug("Inside NNDef('a')")
-			.store("nothing",'keyA');
+			.holdStore("nothing",'keyA');
 			Silent.ar
 		});
 		NNdef(\b, {
@@ -184,8 +184,87 @@ TestFRP : UnitTest {
 			Silent.ar
 		});
 		fire.("test 1");
-		this.assert((after == "test 1") && (NNdef(\a).get('keyA') == "test 1"),
-			"When an NNdef which has an input node which is connected to an ouput node of another NNdef, firing an event in the first NNdef should also fire the event in the second NNdef and the value should be stored in the first NNdef")
+		this.assert((after == "test 1") && (NNdef(\a).enGet('keyA') == "test 1"),
+			"When one NNdef has an output node which is connected to an input node of another NNdef, firing an event in the first NNdef should also fire the event in the second NNdef and the value should be stored in the second NNdef")
+	}
+
+	test_NNdefInjectStore {
+		var tup = EventNetwork.newAddHandler();
+		var registerAction = tup.at1;
+		var fire = tup.at2;
+		var after, cond;
+		NNdef(\a).clear;
+		NNdef(\a).enSet('keyA', 20);
+		NNdef(\b).clear;
+		NNdef(\a, {
+			var es = EventNetwork.enFromAddHandler(registerAction);
+			es
+			.collect({ |x| { |s| x+s }})
+			.injectFStore(0,'keyA')
+			.collect{|x| IO{ after = x}}
+			.enOut;
+			Silent.ar
+		});
+		fire.(1);
+		cond = (after == 21);
+		this.assert(cond,
+			"If an stored value of an NNdef is set via enSet that value should be used instead of the default in the injectFStore")
+	}
+
+	test_NNdefInjectStore2 {
+		var tup = EventNetwork.newAddHandler();
+		var fire = tup.at2;
+		var registerAction = tup.at1;
+		var result;
+		NNdef(\a).clear;
+		NNdef('a', {
+			var es = EventNetwork.enFromAddHandler(registerAction);
+			es
+			.collect{ {|x| 1-x}}
+			.injectFStore(0, \toggle1)
+			.collect{|val| IO{ result = val}}
+			.enOut;
+			Silent.ar
+		});
+		NNdef('a').enSet('toggle1', 1);
+		fire.();
+		this.assert(result == 0,
+			"If an frpNodeMap key and value are set after evaluating the NNdef, the value should be used when the frp network receives a new event.");
+	}
+
+	test_NNdefAsCode {
+		var tup = EventNetwork.newAddHandler();
+		var fire = tup.at2;
+		var code;
+		//needs to be global variable otherwise we create open function
+		//which cannot be stored
+		~registerAction = tup.at1;
+		NNdef(\a).clear;
+		NNdef(\a, {
+			var es = EventNetwork.enFromAddHandler(~registerAction);
+			es
+			.collect{ {|x| x+1}}
+			.injectFStore(0, \counter)
+			//.enDebug("Inside NNDef('a')")
+			.collect{|val| IO{ ~result = val}}
+			.enOut;
+			Silent.ar
+		});
+		fire.();
+		fire.();
+		fire.();
+		//state is now 3
+		//get code that creates this NNdef in this state
+		code = NNdef(\a).asCode;
+		NNdef(\a).clear;
+		tup = EventNetwork.newAddHandler();
+		fire = tup.at2;
+		~result = nil;
+		~registerAction = tup.at1;
+		code.interpret;
+		fire.();
+		//state when the NNdef was saved was 3 so now after firing once more should be 4
+		this.assert(~result == 4, "Calling .asCode on an NNdef should save the current state of the FRP network via enSet.");
 	}
 
 }

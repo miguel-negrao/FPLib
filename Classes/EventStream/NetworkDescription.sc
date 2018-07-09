@@ -36,15 +36,13 @@ EventNetwork {
 		  1: class of object,
 		  2: it has state | Some(T(o.state, o.pureFunc))
 		  3: it is signal | Some(o.now),
-		  4: list of next elements.
+		  4: list of next elements
 		)
 		*/
 		//recursion using methods has the potential for not working well...
 		var f = { |o|
-			//o.class.asString.postln;
-			//o.pureFunc.collect{ |x| x.def.sourceCode.postln };
 			T(  o.class.asString,
-				if([ChildEventSource, ChildFPSignal].any{ |x| o.isKindOf(x) }){
+				if([FoldedES, FoldedFES, FoldedFPSignal].any{ |x| o.class == x }){
 					//"%: Some(T(o.state, o.pureFunc)) = Some(T(%, %)) : %".format(o.class.asString, o.state, o.pureFunc, o).postln;
 					Some(T(o.state, o.pureFunc))
 				}{
@@ -116,7 +114,7 @@ EventNetwork {
 	change{ |networkDescription, disableOnCmdPeriod = false, runSignalReactimatesOnce = true|
 		var check, shapeMatches, functionsMatch;
 		var newActuate, newPause, newFinalIOES;
-		var checkFRPSameGraph, putFRPState, makeFRPGraphAnalysis;
+		var checkFRPSameGraph, putFRPState;
 
 		//  returns T( shapeMatches, functionsMatch)
 		checkFRPSameGraph = { |o, rep|
@@ -184,28 +182,29 @@ EventNetwork {
 		if( this.active ) { pause.unsafePerformIO };
 		//if topology matches put in state from old network
 		if( shapeMatches ) {
+			//"Shape of FRP network matches, putting back old state".postln;
 			putFRPState.(newFinalIOES, frpGraphAnalysis);
 		};
 		//store data for new network
 		actuate = newActuate;
 		pause = newPause;
 		finalIOES = newFinalIOES;
-		frpGraphAnalysis = makeFRPGraphAnalysis.(newFinalIOES);
+		frpGraphAnalysis = EventNetwork.makeFRPGraphAnalysis.(newFinalIOES);
 		//start new network
 		if( this.active ) { actuate.unsafePerformIO };
 	}
 
 	start {
 		if(active.not) {
-			actuate.unsafePerformIO
+			actuate.unsafePerformIO;
+			active = true;
 		};
-		active = true;
 	}
 	stop {
 		if(active) {
-			pause.unsafePerformIO
+			pause.unsafePerformIO;
+			active = false;
 		};
-		active = false;
 	}
 
 	cmdPeriod { this.pauseNow }
@@ -224,11 +223,6 @@ EventNetwork {
     *returnUnit { ^this.returnDesc(Unit) }
 	*makePure { |a| ^this.returnDesc(a) }
 
-/*
-Given two functions (addAction, removeAction) which given a call-back register or deregister the call-back
-returns an EventStream or FPSignal.
-these two methods always call .value
-*/
 	*makeES { |addAction, removeAction|
         var addHandler;
 		var es = EventSource();
@@ -250,11 +244,6 @@ these two methods always call .value
 		^Writer( signal, Tuple3([addHandler],[],[]) )
     }
 
-/*
-general mechanism to register call-back functions
-	newAddHandler returns a registerFunction to be passed on to 'fromAddHandler' and a 'fire' action to be passed
-	on to the event-loop call-back system.
-*/
 	*newAddHandler {
 		//multiple handlers because multiple EventStreams can be created from this fire function.
 		var handlers = List.new;

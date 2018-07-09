@@ -56,8 +56,16 @@ ENdef  {
 		};
 		if( f.notNil ) {
 			//if event network already exists, and graph is compatible, re-use old state.
-			eventNetwork = if(eventNetwork.notNil){eventNetwork.change(ENImperEval(f), runSignalReactimatesOnce:false)}{EventNetwork(ENImperEval(f))};
-			if(active) { eventNetwork.start }
+			eventNetwork = if(eventNetwork.notNil){
+				//"changing event network".postln;
+				eventNetwork.change(ENImperEval(f), runSignalReactimatesOnce:false)
+			}{
+				//"creating event network".postln;
+				EventNetwork(ENImperEval(f))
+			};
+			if(active) {
+				eventNetwork.start
+			}
 		} {
 			eventNetwork = nil
 		}

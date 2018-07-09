@@ -53,12 +53,12 @@ Validation {
 
 //Functor
 	collect { |f|
-		^this.match( Success(_) <> f, { |e| Failure(e) } )
+		^this.match( Success(_) <> f, Failure(_) )
 	}
 
 //Monad
 	>>= { |f|
-		^this.match(f.(_), { |e| Failure(e) })
+		^this.match(f, Failure(_))
 	}
 
     *makePure { |a| ^Success(a) }

@@ -66,7 +66,7 @@
     //args can be used for hints about the type of the zero
 	*zero { |args| Object.typeClassError("Monoid").throw }
 
-//Traverse
+//Traversable
     traverse { |f, type| Object.typeClassError("Traverse").throw }
 
     sequence { |type| ^this.traverse({|x| x}, type) }

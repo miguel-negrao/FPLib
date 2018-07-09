@@ -82,7 +82,8 @@ T{
         {2}{Tuple2}
         {3}{Tuple3}
         {4}{Tuple4}
-		{5}{Tuple5};
+		{5}{Tuple5}
+		{6}{Tuple6};
         ^class.new(*args)
     }
 }
@@ -252,7 +253,7 @@ Tuple5{
 
 //Functor
 	collect { |f|
-		^Tuple4( f.(at1), f.(at2), f.(at3), f.(at4), f.(at5) )
+		^Tuple5( f.(at1), f.(at2), f.(at3), f.(at4), f.(at5) )
 	}
 
 //Monoid
@@ -260,6 +261,42 @@ Tuple5{
 		this.at4 |+| b.at4, this.at5 |+| b.at5 ) }
     *zero { |class1, class2, class3, class4, class5| ^Tuple5( class1.zero, class2.zero,
 		class3.zero, class4.zero, class5.zero) }
+}
+
+Tuple6{
+	var <at1, <at2, <at3, <at4, <at5, <at6;
+
+	*new { |at1, at2, at3, a4, a5, a6|
+		^super.newCopyArgs(at1, at2, at3, a4, a5, a6)
+	}
+
+	== { |tuple|
+        ^if(tuple.isKindOf(Tuple6) ) {
+            (this.at1 == tuple.at1) && (this.at2 == tuple.at2) && (this.at3 == tuple.at3)
+			 && (this.at4 == tuple.at4)  && (this.at5 == tuple.at5) && (this.at6 == tuple.at6)
+        } {
+            false
+        }
+	}
+
+	printOn { arg stream;
+		stream << "(" << at1 << ", " << at2 << ", " << at3 << ", " << at4 << ", " << at5 << ", " << at6 <<")"
+	}
+
+	storeArgs {
+		^[at1, at2, at3, at4, at5, at6]
+	}
+
+//Functor
+	collect { |f|
+		^Tuple6( f.(at1), f.(at2), f.(at3), f.(at4), f.(at5), f.(at6) )
+	}
+
+//Monoid
+    |+| { |b| ^Tuple6( this.at1 |+| b.at1, this.at2 |+| b.at2, this.at3 |+| b.at3,
+		this.at4 |+| b.at4, this.at5 |+| b.at5, this.at6 |+| b.at6 ) }
+    *zero { |class1, class2, class3, class4, class5, class6| ^Tuple5( class1.zero, class2.zero,
+		class3.zero, class4.zero, class5.zero, class6.zero) }
 }
 
 

@@ -29,11 +29,10 @@
 	curried3 { ^{ |x| { |y| {|z| this.pa(x).pa(y).(z) } } } }
 	curried {
 		var r = { |f,n|
-			var result;
 			if(n == 1){
-				{ |x| f.(x) }
+				f
 			} {
-				{|x|	r.value(f.pa(x),n-1) }
+				{|curriedArg| r.value(f.pa(curriedArg),n-1) }
 			}
 		};
 		^r.(this,this.def.argNames.size)

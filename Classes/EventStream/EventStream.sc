@@ -126,8 +126,9 @@ EventSource : EventStream {
 		^FoldedFES(this, initial).hold(initial);
 	}
 
-    switchTo { |f, initialState|
-        ^FlatCollectedES( this, f, initialState)
+    switchTo { |f, initES|
+		this.checkArgs(EventStream, "switchSig", [f, initES], [Function, EventStream] );
+        ^FlatCollectedES( this, f, initES)
     }
 
 	//behaves like initSignal until an event arrives then behaves like the

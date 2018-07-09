@@ -88,7 +88,7 @@ FPSignal {
 		^es2
     }
 
-	//alias
+	//alias for <@ copyed code for eficiency.
 	sampleOn { |es|
 		var es2;
 		this.checkArgs(FPSignal, "sampleOn", [es], [EventStream] );
@@ -128,6 +128,16 @@ FPSignal {
 		^({ |bool, val| T(bool, val) } <%> this <@> es )
 		.select(_.at1)
 		.collect(_.at2)
+	}
+
+	if {|trueES, falseES|
+		var trueResultES = ({ |bool, val| T(bool, val) } <%> this <@> trueES )
+		.select(_.at1)
+		.collect(_.at2);
+		var falseResultES = ({ |bool, val| T(bool.not, val) } <%> this <@> falseES )
+		.select(_.at1)
+		.collect(_.at2);
+		^trueResultES |+| falseResultES
 	}
 //END COMBINATORS
 
@@ -820,6 +830,15 @@ Var : Val {
 		nextSigEnd = this.value(initArg);
 		listOfCreatedObjects = EventStream.buildFlatCollect.pop(-1);
 		^SelfSwitchFPSignal( this, nextSigEnd, listOfCreatedObjects)
+	}
+
+	//for recursive definitions
+	liftRecSampled { |sigClosure, es|
+		var es2;
+		this.checkArgs(Function, "valueSampled", [sigClosure, es], [Function, EventStream] );
+         //apply a signal with a function to every incoming event
+		es2 = es.collect{ |x| this.value(sigClosure.value.now, x) };
+		^es2
 	}
 
 }
