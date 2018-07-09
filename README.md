@@ -6,10 +6,7 @@ Functional Programming library for SuperCollider
 Requirements
 ===========
 
-* SuperCollider 3.7dev
-
-If using SuperCollider 3.6 then also install [some additions](https://github.com/miguel-negrao/sc3.6additions).
-
+* SuperCollider 3.9.3
 * JITLibExtensions quarks.
 * [Modality Library](https://github.com/ModalityTeam/Modality-toolkit)
 
@@ -50,16 +47,6 @@ Without this type hint, there would be no way to know in what class to wrap the 
   * needs: ```>>=```, ```*makePure``` (we don't distinguish between AF's pure and Monad's return)
   * makes available: ```>>=|```, ```sequenceM```, ```pure```
 
-
-A hacky 'do' notation is available (it will not parse every correct 'do' notation syntax, but will parse the most common ones):
-```
-Do(
-  x <- Some(1);
-  return x + 1
-)
-```
-will return ```Some(2)```
-
 ## Monoid
 
   * needs: ```|+|```, ```*zero```
@@ -99,11 +86,9 @@ A monad for constructing the event processors graph is available which is compil
   //                                     eventHandlers         reactimates        IOLater
 ```
 
-Unfortunatelly we can't assign it to a type alias in SuperCollider (perhaps will wrap it in another class in the future).
-
 #More info
 
-See the help files, including the reference page and also there are some blog posts relating to FP Lib at http://www.friendlyvirus.org/miguelnegrao/category/code/.
+See the help files, including the reference page, the examples directory and also there are some blog posts relating to FP Lib at http://www.friendlyvirus.org/miguelnegrao/category/code/.
 
 
 
