@@ -15,7 +15,23 @@ PRIVATE::buildFRPControlNum,buildCurrentNNdefKey,buildControls,eventNetworkBuild
 INSTANCEMETHODS::
 
 
-PRIVATE::eventNetworks, frpControls, clear, put, addToInternalKeys, asENInput, frpControlNames, frpNodeMap, frpStoreControls, initNNdef, internalKeys, internalKeysArray
+PRIVATE::eventNetworks, frpControls, clear, put, addToInternalKeys, asENInput, frpControlNames, frpNodeMap, frpStoreControls, initNNdef, internalKeys, internalKeysArray, asCode, frpNodeMapAsCode
+
+method::enSet
+Set value in FRP state dictionary (key value pairs in flat array). Value is sent to corresponing Store node.
+
+method::enSetNoAction
+Set value in FRP state dictionary (key value pairs in flat array). Value is not sent to corresponing Store node.
+
+method::enGet
+Get value from FRP state dictionary. Value is updated when FRP graph fires by corresponing Store method.
+
+method::enUnset
+Remove key-value pair from dictionary.
+
+method::nodeMaps
+Get audio and FRP node maps.
+
 
 EXAMPLES::
 
@@ -252,6 +268,46 @@ NNdef(\x, {
 )
 ::
 
+When the FRP graph is the same after re-evaluation and only the pure functions were changed the NNdef will be copy the state from the previous FRP graph to the new one. In this case the value in injectFSig will be copied and the current value of the octave will be kept. Try using the buttons until the octave is for instance 3, then run the code below and notice how pressing forward again will change the octave to 2:
+
+code::
+(
+NNdef(\x, {
+	var k = MKtl('nnkn0').elementGroup;
+	var page = 0;
+
+	var octaveUpES = k[\tr][\fwd].enIn.select(_==1).collect{ {|x| (x-1).min(3) } };
+	var octaveDownES = k[\tr][\rew].enIn.select(_==1).collect{ {|x| (x+1).max(-3) } };
+
+	var octaveSig = (octaveUpES | octaveDownES).injectFSig(0).enDebug("octave");
+
+	var amp = k[\sl][page][0].enInSig.enDebug("amp").enKr(lag: 0.1, key:\amp);
+
+	var f0 = 100;
+	var freq = k[\bt][page].flat.collect{ |mktlElement,i|
+		var freq0 = f0 * (2**(i/12));
+		{ |octave, e| (2**octave)*freq0 } <%> octaveSig <@> mktlElement.enIn;
+	}
+	.mreduce //merge all event sources
+	.enDebug("freq")
+	.hold(f0) //start with f0=100Hz
+	.enKr(lag: 0.1, key:\freq);
+
+	var lo = k[\sl][page][1].enInSig.enDebug("lo").enKrUni(lag: 0.1, spec: \freq, key:\filt_low);
+	var hi = k[\sl][page][2].enInSig.enDebug("hi").enKrUni(lag: 0.1, spec: \freq, key:\filt_high);
+
+	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(lo,hi), 0.1 ) * 0.1.dup * amp
+
+}).play
+)
+::
+
+To dispose of the current value in all nodes with state use clear:
+
+code::
+NNdef(\x).clear
+::
+
 If play is pressed amp slider is in 'zoom' mode:
 
 code::
@@ -386,4 +442,53 @@ NNdef(\x, {
 
 }).play
 )
+::
+
+subsection::Persistence
+
+State can exist in the FRP network in the FPSignal nodes and inject, injectSig, injectF and injectFSig nodes. To save and recall this state use the store methods: injectStore, injectSigStore, injectFStore and injectFSigStore. These methods will associtate the node with a name and save incoming values to a dictionary in the NNdef. The dictionary can be queried with enGet and enSet. The whole NNdef can be persisted to disk using asCode.
+
+code::
+(
+NNdef(\x, {
+	var k = MKtl('nnkn0').elementGroup;
+	var page = 0;
+
+	var octaveUpES = k[\tr][\fwd].enIn.select(_==1).collect{ {|x| (x+1).min(3) } };
+	var octaveDownES = k[\tr][\rew].enIn.select(_==1).collect{ {|x| (x-1).max(-3) } };
+
+	var octaveSig = (octaveUpES | octaveDownES)
+//HERE USING STORE VARIANT OF INJECTFSIG
+	.injectFSigStore(0, \octave)
+	.enDebug("octave");
+
+	var amp = k[\sl][page][0].enInSig.enDebug("amp").enKr(lag: 0.1, key:\amp);
+
+	var f0 = 100;
+	var freq = k[\bt][page].flat.collect{ |mktlElement,i|
+		var freq0 = f0 * (2**(i/12));
+		{ |octave, e| (2**octave)*freq0 } <%> octaveSig <@> mktlElement.enIn;
+	}
+	.mreduce //merge all event sources
+	.enDebug("freq")
+	.hold(f0) //start with f0=100Hz
+	.enKr(lag: 0.1, key:\freq);
+
+	var lo = k[\sl][page][1].enInSig.enDebug("lo").enKrUni(lag: 0.1, spec: \freq, key:\filt_low);
+	var hi = k[\sl][page][2].enInSig.enDebug("hi").enKrUni(lag: 0.1, spec: \freq, key:\filt_high);
+
+	RLPF.ar( Pulse.ar(freq), LFNoise1.ar(1).range(lo,hi), 0.1 ) * 0.1.dup * amp
+
+}).play
+)
+
+NNdef(\x).enGet(\octave)
+
+NNdef(\x).enSet(\octave,3)
+::
+
+This will include on enSet instruction for the octave parameter.
+
+code::
+NNdef(\x).asCode
 ::
