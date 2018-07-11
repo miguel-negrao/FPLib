@@ -3,12 +3,10 @@
 (
 w = Window().acceptsMouseOver_(true).front;
 
-x = EventNetwork(ENDef({
-	var pos = w.view.mousePosEnIn;
+x = ENdef(\x,{
+	var pos = w.view.enMousePos;
 	pos.collect{ |p| putStrLn("mouse pos is: "++p) }.enOut;
-}));
-
-x.start
+})).start;
 )
 
 // is down
@@ -16,20 +14,18 @@ x.start
 t = StaticText();
 w = Window().layout_(HLayout(t)).front;
 
-x = EventNetwork(ENDef({
-	var pos = w.view.mouseIsDownEnIn;
+ENdef(\x,{
+	var pos = w.view.enMouseIsDown;
 	pos.collect{ |b| IO{ t.string_("mouse is down: "++b) } }.enOut;
-}));
-
-x.start
+}).start;
 )
 
 //track mouse position
 (
 w = UserView().minWidth_(500).minHeight_(500).acceptsMouseOver_(true).front;
 
-x = EventNetwork(ENDef({
-	var pos = w.mousePosEnIn;
+ENdef(\x, {
+	var pos = w.enMousePos;
 
 	var cx = w.bounds.width/2;
 	var cy = w.bounds.height/2;
@@ -47,9 +43,7 @@ x = EventNetwork(ENDef({
 	};
 
 	drawing.collect(w.setDrawing(_)).enOut
-}));
-
-x.start
+}).start
 )
 
 //stamp circles
@@ -57,9 +51,9 @@ x.start
 (
 w = UserView().minWidth_(500).minHeight_(500).acceptsMouseOver_(true).front;
 
-x = EventNetwork(ENDef({
-	var pos = w.mousePosEnIn;
-	var clicks = w.mouseClicksEnInES;
+ENdef(\x,{
+	var pos = w.enMousePos;
+	var clicks = w.enMouseClicks;
 
 	var accumPos = pos.sampleOn(clicks).inject([], { |state,x| state.addI(T(x,Color.rand)) });
 
@@ -71,37 +65,31 @@ x = EventNetwork(ENDef({
 		w.setDrawing(final)
 	}.enOut
 
-}));
-
-x.start
+}).start
 )
 
 
 //keyboard
-
-//keysDown
-(
-t = StaticText();
-w = Window().layout_(HLayout(t)).front;
-
-x = EventNetwork(ENDef({
-	var pos = w.view.keysDownEnIn;
-	pos.collect{ |b| IO{ t.string_("keys down: "++b) } }.enOut;
-}));
-
-x.start
-)
 
 //keyDown
 (
 t = StaticText();
 w = Window().layout_(HLayout(t)).front;
 
-x = EventNetwork(ENDef({
-	var pos = w.view.keyDownEnInES;
+ENdef(\x,{
+	var pos = w.view.enKeyDown;
 	pos.collect{ |b| IO{ t.string_("key down: "++b) } }.enOut;
-}));
+}).start
+)
 
-x.start
+//keyUp
+(
+t = StaticText();
+w = Window().layout_(HLayout(t)).front;
+
+ENdef(\x, {
+	var pos = w.view.enKeyUp;
+	pos.collect{ |b| IO{ t.string_("key up: "++b) } }.enOut;
+}).start
 )
 

@@ -1,3 +1,7 @@
+/*
+Pressing the button and touching two knobs will exchange which knob is controlling which sound.
+*/
+
 (
 q = ();
 
@@ -26,12 +30,11 @@ q.synths = [
 
 CmdPeriod.add{ q.window !? _.close };
 
+ENdef(\x, {
 
-EventNetwork(ENDef({
-
-	var knobs = q.knobs.collect(_.enInES);
+	var knobs = q.knobs.collect(_.enIn);
 	var knobsSig = knobs.collect(_.hold(0.0));
-	var but = q.button.enInES.collect(_.booleanValue);
+	var but = q.button.enIn.collect(_.booleanValue);
 	var butSig = but.hold(false);
 
 	//**** FRP LOGIC *****
@@ -96,6 +99,6 @@ EventNetwork(ENDef({
 		box.enSinkValue( sig )
 	}
 
-},true)).start
+}).start
 
 )

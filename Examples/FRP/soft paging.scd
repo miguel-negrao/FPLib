@@ -2,14 +2,9 @@
 
 Example of setting up paged controls
 
-Notice that changing page doesn't cause new values to be emmited.
-
 */
 
-
-
 (
-
 q = ();
 
 //setup gui
@@ -23,12 +18,12 @@ q.defaults = { rrand(0.0,1.0) } ! 10;
 
 q.numPages = q.defaults.size;
 
-q.network = EventNetwork(ENDef({
+ENdef(\x, {
 	//get guis as event streams
 	//for this case event streams are better then signals
-	var slE = q.sl.enInES;
-	var but1E = q.but1.enInES;
-	var but2E = q.but2.enInES;
+	var slE = q.sl.enIn;
+	var but1E = q.but1.enIn;
+	var but2E = q.but2.enIn;
 
 	//page counter
 	var increasePage = { |x| (x + 1).clip(0, q.numPages-1) };
@@ -51,20 +46,19 @@ q.network = EventNetwork(ENDef({
 
 	//x.at1 is an array of event sources, one per page
 	//x.at2 is an event source which fires when there is a page change
-	//and carries the value of the control for the page which became current
-
+	//and carries T(n,v) where n is the page which became current
+	//and v is its value
+	x.at2.enDebug("value");
 	//reset slider on page change
-	q.sl.enSinkValue( x.at2 );
+	q.sl.enSinkValue( x.at2.collect(_.at2));
 
-}),true);
+}).start;
 
 q.window.front;
-q.network.start;
-
 )
 
 (
-q.network.free;
+Endef(\x).stop;
 q.window.close;
 )
 

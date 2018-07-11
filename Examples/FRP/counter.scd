@@ -6,13 +6,13 @@
 
 w = Window(bounds:Rect(200,200,200,200)).layout_(
         HLayout( ~but1, ~but2, ~text )
-    );
+    ).front;
 
 //network
-~networkDescription = ENDef({
+ENdef(\x, {
     //inputs
-    var but1E = ~but1.enInES;
-	var but2E = ~but2.enInES;
+    var but1E = ~but1.enIn;
+	var but2E = ~but2.enIn;
 
 	var counter = but1E.collect{ { |x| x - 1 } }
 	.merge( but2E.collect{ { |x| x + 1 } } )
@@ -20,11 +20,5 @@ w = Window(bounds:Rect(200,200,200,200)).layout_(
 
 	~text.enSink( counter.collect{ |x| [\string_, x] } );
 
-});
-//compile network
-~network = EventNetwork(~networkDescription, true);
-
-//start network
-~network.start;
-w.front;
+}).start;
 )

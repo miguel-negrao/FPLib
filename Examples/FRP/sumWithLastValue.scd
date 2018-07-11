@@ -13,13 +13,13 @@ b = stepper 0 e2
 
 unfortunatelly this cannot be done this way in SuperCollider so
 
-f <$> b <@> e
+f <$> sig <@> es
 
 must be changed to
 
-e.apply(f <$> b)
+f.liftRecSampled({sig}, es)
 
-e.collect{ |a| f(a, b.now) }
+{sig} will delay execution of sig
 
 */
 (
@@ -33,24 +33,19 @@ w = Window(bounds:Rect(200,200,200,100)).layout_(
 
 //Setup Event Network
 //network
-~networkDescription = ENDef({
+ENdef(\x, {
 	var sumSig, sum;
 
     //in
-    var nb1S = nb1.enInES;
+    var nb1ES = nb1.enIn;
 
-	sum = { |a| a + sumSig.now } <%> nb1S;
+	sum = (_+_).liftRecSampled({sumSig}, nb1ES);
 	sumSig = sum.hold(0);
 
 	//out
-	nb2.enSinkValue( sumSig );
+	nb2.enSinkValue( sum );
 
-});
+}).start;
 
-//compile network
-~network = EventNetwork(~networkDescription);
-
-//display guis and start network
-~network.start;
 w.front;
 )

@@ -1,5 +1,4 @@
 //convert Euros to Pounds
-//using signals
 (
 //Setup GUI
 var nb1 = NumberBox();
@@ -7,11 +6,9 @@ var nb2 = NumberBox();
 
 w = Window(bounds:Rect(200,200,200,100)).layout_(
 	HLayout( StaticText().string_("Euro:"), nb1, StaticText().string_("Pound:"), nb2 )
-    );
+    ).front;
 
-//Setup Event Network
-//network
-~networkDescription = ENDef({
+ENdef(\x,{
 	var rate = 0.8;
 
     //euros
@@ -27,12 +24,5 @@ w = Window(bounds:Rect(200,200,200,100)).layout_(
 	nb1.enSinkValue( from );
 	nb2.enSinkValue( to );
 
-});
-
-//compile network
-~network = EventNetwork(~networkDescription);
-
-//display guis and start network
-~network.start;
-w.front;
+}).start;
 )
