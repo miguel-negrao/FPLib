@@ -114,7 +114,7 @@ This is different from the more general fromAddHandler method.
 		^Writer( es, Tuple3([addHandler],[],[]) )
 	}
 
-	enKeyUp {
+	enKeyDown {
 		^ENImperEval.appendToResult( this.keyDownEN );
 	}
 
