@@ -274,7 +274,7 @@ EventSource : EventStream {
 			}
 		};
 
-		var process = valueIn.merge(pageChange).injectF(
+		var process = (valueIn |+| pageChange).injectF(
 			(pageNum:0, values: defaults, newValue:None(), pageChange:None() )
 		);
 
