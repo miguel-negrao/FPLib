@@ -184,9 +184,14 @@ NNdef : Ndef {
 	enSet { | ... args |
 		//"% setting %".format(this.key, args).postln;
 		args.pairsDo{ |key,val|
-			frpNodeMap.put(key, val);
-			frpStoreControls[key] !?{ |d|
-				d['es'].fire(val);
+			//if there is no call-back yet for that key then store directly
+			//otherwise let the call-back do the setting.
+			if(frpStoreControls[key].isNil){
+				frpNodeMap.put(key, val);
+			} {
+				frpStoreControls[key] !?{ |d|
+					d['es'].fire(val);
+				}
 			}
 		};
 	}
