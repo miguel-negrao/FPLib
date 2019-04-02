@@ -63,7 +63,7 @@ NNdef : Ndef {
 	}
 
 	internalKeys {
-		^internalKeysArray.addAll(#[\out, \i_out, \gate, \fadeTime]);
+		^internalKeysArray ++ [\out, \i_out, \gate, \fadeTime];
 	}
 
 	addToInternalKeys { |controlName|
