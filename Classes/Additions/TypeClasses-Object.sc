@@ -26,6 +26,10 @@
         ^Error("Class "++this.class++"is not type instance of "++class)
     }
 
+	typeClassError { |class|
+        ^Error("Class "++this.class++" is not type instance of "++class)
+    }
+
 //Functor
     //collect { }
 
@@ -67,7 +71,7 @@
 	*zero { |args| Object.typeClassError("Monoid").throw }
 
 //Traversable
-    traverse { |f, type| Object.typeClassError("Traverse").throw }
+	traverse { |f, type| this.typeClassError("Traverse").throw }
 
     sequence { |type| ^this.traverse({|x| x}, type) }
 
