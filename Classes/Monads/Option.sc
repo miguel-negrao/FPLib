@@ -54,6 +54,10 @@ Option {
 		^this
 	}
 
+	*guard { |cond|
+		if (cond) { Some(Unit) } { None() }
+	}
+
 }
 
 Some : Option {
