@@ -80,7 +80,7 @@ q.softset = { |es, delta = 0.1|
 };
 
 //FRP
-EventNetwork(ENDef({
+EventNetwork(ENImperEval({
 
 	var freqArraySig; //declare now for recursive use
 

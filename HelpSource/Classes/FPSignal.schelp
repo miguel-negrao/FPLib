@@ -117,7 +117,7 @@ code::
 //resets a counter
 (
 var timer = ENTimer(0.1);
-x = EventNetwork(ENDef{
+x = EventNetwork(ENImperEval{
 
 	var tSig = timer.enIn.hold(0.0);
 
@@ -138,7 +138,7 @@ timer.start.unsafePerformIO
 //bouncing ball
 (
 var timer = ENTimer(0.1);
-x = EventNetwork(ENDef{
+x = EventNetwork(ENImperEval{
 
 	var tSig = timer.enIn.hold(0.0);
 

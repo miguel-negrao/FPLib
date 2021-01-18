@@ -293,7 +293,7 @@ ENdef(\sum,{
 
 //now type numbers into the first number box
 
-ENDef(\sum).stop;
+ENdef(\sum).stop;
 w.close;
 ::
 
