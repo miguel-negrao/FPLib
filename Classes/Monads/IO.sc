@@ -71,34 +71,6 @@ IO{
 
 }
 
-+ Window {
-	frontIO {
-		^IO{ this.front }
-	}
-
-	closeIO {
-		^IO{ this.close }
-	}
-
-	setPropIO { |...args| //selector, args
-		^IO{ this.performMsg(args) }
-	}
-}
-
-+ View {
-	frontIO {
-		^IO{ this.front }
-	}
-
-	closeIO {
-		^IO{ this.close }
-	}
-
-	setPropIO { |...args| //selector, args
-		^IO{ this.performList(*args) }
-	}
-}
-
 + String {
     unixCmdIO {
         ^IO{ this.unixCmd }
